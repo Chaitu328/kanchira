@@ -1,0 +1,414 @@
+POST http://localhost:3005/getProductsByIds
+Content-Type: application/json
+
+{
+  "categoryId": "680a102ddb8595083c44633e",
+  "subcategoryId": "681db09ce8d47404731649bb",
+  "subsubcategoryId": "681c9f57fa73fdd41f86eb9c"
+}
+
+
+###
+GET http://localhost:3007/getproducts 
+Content-Type: application/json
+
+
+###
+GET http://localhost:3007/users 
+Content-Type: application/json
+
+
+###
+POST http://localhost:3005/getSubCategoryById
+Content-Type: application/json
+
+{
+  "subCategoryId": "680a21cde2d0bef2fa3ba97f"
+}
+
+###
+POST http://localhost:3005/getSub_SubCategoryById
+Content-Type: application/json
+
+{
+  "subCategoryId":"680a21cde2d0bef2fa3ba97f"
+}
+
+###
+PUT http://localhost:3005/updateSubCategory
+Content-Type: application/json
+
+{
+  "_id": "681c3874f2723a3718503a40",
+  "name": "Fruits",
+  "image": "https://example.com/images/fruits.jpg",
+  "icon": "https://example.com/icons/fruits-icon.png",
+  "slug": "fruits",
+  "available": true,
+  "categoryId": "680a102ddb8595083c44633e"
+}
+
+###
+POST http://localhost:3005/getCategoryById
+Content-Type: application/json
+
+{
+  "categoryId": "682720c1d0c38908bc71c764"
+}
+
+###
+POST http://localhost:3005/createPayment
+Content-Type: application/json
+
+{
+  "totalAmount": 1
+}
+
+###
+POST https://api-preprod.phonepe.com/apis/identity-manager/v1/oauth/access-token
+Content-Type: application/x-www-form-
+
+
+
+###
+POST http://localhost:3007/userRegister
+Content-Type: application/json
+
+{
+  "name":"nani",
+  "phone":"8978971154",
+  "email":"0607nani@gmail.com",
+  "password":"nani123"
+}
+
+
+###
+POST http://localhost:3007/verifyOtp
+Content-Type: application/json
+
+{
+   "phone":"8978971154",
+   "OTP":"4565"
+}
+
+
+###
+POST http://localhost:3007/userLogin
+Content-Type: application/json
+
+{
+    "emailOrPhone": "0607nani@gmail.com",
+     "password":"nani123"
+}
+
+
+###
+POST http://localhost:3005/getProductsBySubCategory
+Content-Type: application/json
+
+{
+  "subsubcategoryId":"68416062c1e599d8e126e60f"
+}
+
+###
+GET http://localhost:3007/getSub_SubCategories
+Content-Type: application/json`
+
+
+
+###
+DELETE  http://localhost:3007/deleteUserById
+Content-Type: application/json
+
+{
+  "userId":"68748d3d301f957722d9c53f"
+}
+
+###
+POST http://localhost:3005/getReview
+Content-Type: application/json
+
+{
+  "productId":"6841da43f6ebff00ed835128"
+}
+
+###
+GET http://localhost:3005/getproducts
+Content-Type: application/json
+
+
+###
+POST http://localhost:3007/sentOtp
+Content-Type: application/json
+
+{
+  "email":"maddisettivennela184@gmail.com"
+}
+
+
+###
+POST http://localhost:3007/sentVerifyOtp
+Content-Type: application/json
+
+{
+  "email":"0607nani@gmail.com",
+  "otp":"254478"
+}
+
+###
+POST http://localhost:3007/setPassword
+Content-Type: application/json
+
+{
+  "email":"0607nani@gmail.com",
+    "password":"nani@123",
+    "confirmPassword":"nani@123"
+}
+
+###
+POST http://localhost:3005/addReview
+Content-Type: application/json
+
+{
+  "productId":"6841da43f6ebff00ed835128",
+  "userId":"685bf11ff0519904cba5b460",
+  "rating":"ashdfsdah",
+  "rating": 4,
+  "text": "Nice Product",
+  "tags": ["quality", "value for money"],
+  "images": [
+    "https://res.cloudinary.com/yourapp/image/upload/v1234567890/review1.jpg",
+    "https://res.cloudinary.com/yourapp/image/upload/v1234567890/review2.jpg"
+  ]
+}
+
+
+
+###
+GET http://localhost:3007/users
+Content-Type: application/json
+
+
+###
+POST http://localhost:3005/userRegister
+Content-Type: application/json
+
+{
+"name":"name",
+"email": "maddisettivendnela184@gmail.com",
+"phone":"9391554158",
+"password":"venni123"
+}
+
+###
+POST http://localhost:3005/createproduct
+Content-Type: application/json
+
+{
+  "name": "Denim Shirt Corronserer",
+  "description": "Premium quality slim fit cotton shirt for all occasions.",
+  "categoryId": "6841580fc1e599d8e126e431",        
+  "subcategoryId": "68415cedc1e599d8e126e554",
+  "subsubcategoryId": "68416276c1e599d8e126e62d",
+  "brand": "UrbanStyle",
+  "tags": ["formal", "slim fit", "cotton", "men"],
+  "speciality": "Handloom",
+  "slug": "denim-shirt-cottosnrer",
+  "metaTitle": "Buy Slim Fit Organic Cotton Shirt for Men",
+  "metaDescription": "Discover our stylish slim fit organic cotton shirts perfect for any occasion.",
+  "discountPercentage": 15,
+  "url": "https://yourstore.com/product/slim-fit-cotton-shirt",
+  "image": "https://yourstore.com/images/shirt-thumb.jpg",
+  "variants": [
+    {
+      "color": "Red",
+      "colorCode": "#FF0000",
+      "images": [
+        {
+          "url": "https://yourstore.com/images/red-shirt-front.jpg",
+          "alt": "Front view of red shirt"
+        },
+        {
+          "url": "https://yourstore.com/images/red-shirt-back.jpg",
+          "alt": "Back view of red shirt"
+        }
+      ],
+      "sizes": [
+        {
+          "size": "M",
+          "price": 1199,
+          "stock": 50,
+          "left": 50,
+          "discountPercentage": 10,
+          "finalPrice": 1079.1,
+          "isAvailable": true
+        },
+        {
+          "size": "L",
+          "price": 1199,
+          "stock": 40,
+          "left": 40,
+          "discountPercentage": 10,
+          "finalPrice": 1079.1,
+          "isAvailable": true
+        }
+      ],
+      "rating": 4.5
+    },
+    {
+      "color": "Blue",
+      "colorCode": "#0000FF",
+      "images": [
+        {
+          "url": "https://yourstore.com/images/blue-shirt-front.jpg",
+          "alt": "Front view of blue shirt"
+        }
+      ],
+      "sizes": [
+        {
+          "size": "M",
+          "price": 1199,
+          "stock": 60,
+          "left": 60,
+          "discountPercentage": 15,
+          "finalPrice": 1019.15,
+          "isAvailable": true
+        }
+      ],
+      "rating": 4.0
+    }
+  ],
+  "galleryImages": [
+    "https://yourstore.com/images/gallery1.jpg",
+    "https://yourstore.com/images/gallery2.jpg"
+  ]
+}
+
+
+###
+PUT http://localhost:3007/updateLogo
+Content-Type: application/json
+
+{
+  "id":"6870e979f5d4b8207ef53d51",
+  "logo": "https://res.cloudinary.com/yourapp/image/upload/v1234567890/review1.jpg",
+  "brandName": "Update"
+}
+
+
+###
+GET http://localhost:3007/getLogo
+Content-Type: application/json
+
+
+
+###
+POST http://localhost:3007/addWishlist
+Content-Type: application/json
+
+{
+  "productId":"686786cc7ee872039a265d1d",
+  "userId":"685be5cbd7dc8b81669cab81"
+}
+
+###
+POST http://localhost:3007/addcart
+Content-Type: application/json
+
+{
+  "userId": "685be5cbd7dc8b81669cab81",
+  "items": [
+    {
+      "productId": "6841da43f6ebff00ed835128",
+      "image": "https://example.com/product-image.jpg",
+      "variant": {
+        
+        "color": "Red",
+        "size": "XL",
+        "material": "Cotton",
+        "price": "1200",
+        "storage": "256GB",
+        "fabric": "Denim",
+        "discountPercentage": "10",
+        "rating": "4.5"
+      },
+      "quantity": 2
+    }
+  ]
+}
+
+
+###
+POST  http://localhost:3007/getcart
+Content-Type: application/json
+
+{
+  "userId": "685be5cbd7dc8b81669cab81"
+}
+
+
+###
+GET http://localhost:3007/getAllCartData
+Content-Type: application/json   
+
+
+###
+POST  http://localhost:3007/resendOtp
+Content-Type: application/json
+
+{
+"email": "maddisettivennela184@gmail.com"
+}
+
+###
+POST http://localhost:3007/createCouponcode
+Content-Type: application/json
+
+{
+  "type": "percentage",
+  "value": 30,
+  "expiryDate": "2025-11-11"
+}
+
+###
+GET http://localhost:3007/getCoupons
+Content-Type: application/json
+
+###
+GET http://localhost:3007/getCouponByCode/MPV2X2K9
+Content-Type: application/json
+
+###
+POST http://localhost:3007/createfistival
+Content-Type: application/json
+
+{
+  "name": "Diwali Special 25% OFF",
+  "description": "25% off on orders above ₹1000",
+  "type": "percentage",
+  "value": 25,
+  "startDate": "2025-10-25T00:00:00.000Z",
+  "expiryDate": "2025-11-05T23:59:59.000Z",
+  "active": true
+}
+
+
+###
+GET http://localhost:3007/getfestival
+Content-Type: application/json
+
+###
+PUT http://localhost:3007/festival/68d27808179be484c163c929
+Content-Type: application/json
+
+{
+  "name": "Dasara Special 25% OFF",
+  "description": "25% off on orders above ₹1000",
+  "type": "percentage",
+  "value": 25,
+  "startDate": "2025-10-25T00:00:00.000Z",
+  "expiryDate": "2025-11-05T23:59:59.000Z",
+  "active": true
+}
+
+

@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --red-color: #640101;
+  --darkred-color: #810202;
+  --Gold-color: #d2ae4e;
+  --Brown-color: #975607;
+  --yellow-colour: #daa511;
+  --Green-color: #376d5c;
+  --white-colour: #fefefe;
+  --black-color: #262627;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Roboto", "Helvetica Neue", sans-serif;
+  background-color: #f5f5f5;
+}
+
+/* Sidebar scrollbar hide */
+.sidebar-scroll {
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Table styles */
+.kanchira-table {
+  @apply w-full border-collapse bg-white rounded-xl overflow-hidden shadow;
+}
+.kanchira-table thead tr {
+  background-color: var(--red-color);
+  color: white;
+}
+.kanchira-table thead th {
+  @apply px-4 py-3 text-left text-sm font-semibold whitespace-nowrap;
+}
+.kanchira-table tbody tr {
+  @apply border-b border-gray-100 hover:bg-amber-50 transition-colors;
+}
+.kanchira-table tbody td {
+  @apply px-4 py-3 text-sm text-gray-700;
+}
+
+/* Form inputs */
+.kanchira-input {
+  @apply w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--red-color);
+  @apply text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition cursor-pointer border-0;
+}
+.btn-gold {
+  background-color: var(--Gold-color);
+  @apply text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition cursor-pointer border-0;
+}
+.btn-secondary {
+  @apply bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition cursor-pointer border-0;
+}
+.btn-success {
+  @apply bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition cursor-pointer border-0;
+}
+.btn-danger {
+  @apply bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-700 transition cursor-pointer border-0;
+}
+.btn-edit {
+  background-color: var(--Gold-color);
+  @apply text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 transition cursor-pointer border-0;
+}
+.btn-icon {
+  @apply p-1.5 rounded-lg transition cursor-pointer border-0 text-white;
+}
+
+/* Card */
+.kanchira-card {
+  @apply bg-white rounded-xl shadow-sm p-5;
+}
+
+/* Page header */
+.page-header {
+  @apply flex items-center justify-between mb-6;
+}
+.page-title {
+  @apply text-2xl font-bold;
+  background: linear-gradient(to right, #640101, #d2ae4e, #810202);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Dashboard stat card */
+.stat-card {
+  background-color: var(--darkred-color);
+  @apply rounded-xl p-5 text-white relative overflow-hidden cursor-pointer transition-all shadow-lg;
+}
+.stat-card::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(237, 192, 11, 0.4),
+    transparent
+  );
+  top: -100%;
+  left: -100%;
+  transition: all 1.5s ease;
+}
+.stat-card:hover::before {
+  top: 100%;
+  left: 100%;
+}
+
+/* Active nav item */
+.nav-active {
+  background-color: var(--Gold-color) !important;
+}
+
+/* Toast override */
+.Toastify__toast--success {
+  background: #376d5c !important;
+}
+.Toastify__toast--error {
+  background: #640101 !important;
+}
+
+/* Spinner */
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modal overlay */
+.modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Image preview */
+.img-preview {
+  @apply w-16 h-16 object-cover rounded-lg border border-gray-200;
+}
+/* Add this to your global CSS file (e.g. index.css or App.css) */
+.dark-form-header {
+  background-color: #640101;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.75rem 0.75rem 0 0;
+  margin: -1.5rem -1.5rem 0 -1.5rem; /* bleeds to card edges */
+}
