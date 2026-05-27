@@ -58,7 +58,7 @@ exports.updateCategory = async (req, res) => {
 // Delete Category Item
 exports.deleteCategory = async (req, res) => {
   try {
-    const { _id } = req.body;
+    const _id = req.params.id || req.body._id;
 
     const deletedCategory = await Categories.findByIdAndDelete(_id);
 
@@ -194,4 +194,3 @@ exports.getCategoriesWithSubcategories = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-

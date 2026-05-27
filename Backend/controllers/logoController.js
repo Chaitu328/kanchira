@@ -69,7 +69,7 @@ exports.UpdateLogo = async (req, res) => {
 // Delete Logo by ID
 exports.DeleteLogo = async (req, res) => {
   try {
-    const { id } = req.body;
+    const { id } = req.params;
     if (!id) {
       return res
         .status(400)

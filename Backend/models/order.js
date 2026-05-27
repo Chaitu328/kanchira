@@ -58,7 +58,16 @@ const OrderSchema = new mongoose.Schema(
     spinDiscount: { type: Number, default: 0 },
     couponCode: { type: String, default: "" },
     couponDiscount: { type: Number, default: 0 },
-    festivalDiscount: { type: Number, default: 0 }, // ✅ FIX: was missing from schema
+    festivalDiscount: { type: Number, default: 0 },
+
+    // ── Snapshot of who created the coupon at order time ──────────
+    // Stored so it's never lost even if the coupon is later deleted.
+    couponCreatedBy: {
+      adminId:   { type: mongoose.Schema.Types.ObjectId, default: null },
+      adminName: { type: String, default: "" },
+      adminEmail:{ type: String, default: "" },
+      adminPhone:{ type: String, default: "" },
+    },
 
     paymentMethod: {
       type: String,

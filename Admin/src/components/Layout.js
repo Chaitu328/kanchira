@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { label: 'All Users',        icon: 'fa-users',       path: '/dashboard/users' },
   { label: 'Logo / Brand',     icon: 'fa-flag',        path: '/dashboard/logo' },
   { label: 'Pincode',          icon: 'fa-map-marker',  path: '/dashboard/pincode' },
-  { label: 'Festival Discount',icon: 'fa-gift',        path: '/dashboard/festival' },
+  // { label: 'Festival Discount',icon: 'fa-gift',        path: '/dashboard/festival' },
   { label: 'Coupon Codes',     icon: 'fa-ticket',      path: '/dashboard/coupons' },
   { label: 'Address',          icon: 'fa-address-book',path: '/dashboard/address' },
 ];
@@ -28,7 +28,7 @@ export default function Layout() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   const sidebarW = collapsed ? 60 : 250;

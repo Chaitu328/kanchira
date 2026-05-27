@@ -23,7 +23,6 @@ exports.createUser = async (req, res) => {
     const existingPhone = await User.findOne({ phone });
     if (existingPhone) {
       if (!existingPhone.isVerified) {
-        // Delete the old unverified user and allow re-registration
         await User.findByIdAndDelete(existingPhone._id);
       } else {
         return res.status(200).json({
@@ -32,11 +31,10 @@ exports.createUser = async (req, res) => {
         });
       }
     }
-    // Generate OTP
+
     const OTP = Math.floor(100000 + Math.random() * 900000).toString();
     console.log("Generated OTP:", OTP);
 
-    // Send OTP to mobile
     const sendOtpToMobile = await sendOtp(phone, OTP);
     console.log("OTP sent status:", sendOtpToMobile);
 
@@ -309,13 +307,14 @@ exports.setPassword = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { name, email, phone, userId } = req.body;
+    // ✅ FIX: route is PUT /user/update/:id — get userId from req.params
+    const userId = req.params.id;
+    const { name, email, phone } = req.body;
 
     if (!name && !email && !phone) {
       return res.status(400).json({
         responseCode: 400,
-        message:
-          "At least one field (name, email, or phone) is required for update",
+        message: "At least one field (name, email, or phone) is required for update",
       });
     }
 
@@ -430,7 +429,8 @@ exports.getAllusers = async (req, res) => {
 
 exports.deleteUserById = async (req, res) => {
   try {
-    const { userId } = req.body;
+    // ✅ FIX: route is DELETE /user/:id — read from req.params, not req.body
+    const userId = req.params.id;
 
     if (!userId) {
       return res
@@ -462,7 +462,8 @@ exports.deleteUserById = async (req, res) => {
 
 exports.getProfileUser = async (req, res) => {
   try {
-    const { userId } = req.body;
+    // ✅ FIX: route is GET /user/profile/:id — read from req.params, not req.body
+    const userId = req.params.id;
 
     if (!userId) {
       return res

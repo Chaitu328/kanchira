@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { submitContactForm } from '../services/api'
+// import { submitContactForm } from '../services/api'
 
 export function TermsConditionsPage() {
   return (

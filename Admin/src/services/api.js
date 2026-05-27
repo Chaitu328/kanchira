@@ -1,17 +1,21 @@
 import axios from "axios";
 
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:3007/";
+const API_BASE =
+  process.env.REACT_APP_API_URL || "https://kanchira-backend-1.onrender.com/";
 
+// All regular-admin routes are mounted at /api on the backend:
+//   app.use("/api", authRoutes)  ← index.js
+// So every call here must include the "api/" prefix.
 const api = axios.create({ baseURL: API_BASE });
 
-// Attach JWT token to every request
+// ── Attach JWT token to every request ────────────────────────────
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Auto logout on 401
+// ── Auto logout on 401 ───────────────────────────────────────────
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -25,103 +29,149 @@ api.interceptors.response.use(
 );
 
 // ── AUTH ─────────────────────────────────────────────────────────
-export const loginAdmin = (data) => api.post("adminlogin", data);
-export const registerAdmin = (data) => api.post("admin_register", data);
+// FIX: was 'admin/login' → 404. Backend mounts at /api so needs 'api/admin/login'
+export const loginAdmin = (data) => api.post("api/admin/login", data);
+export const registerAdmin = (data) => api.post("api/admin/register", data);
 
-// ── UPLOAD ───────────────────────────────────────────────────────
-export const uploadImage = (formData) => api.post("upload", formData);
+// ── IMAGE UPLOAD ─────────────────────────────────────────────────
+export const uploadImage = (formData) => api.post("api/upload", formData);
 
 // ── CATEGORIES ───────────────────────────────────────────────────
-export const getCategories = () => api.get("getCategories");
-export const getCategoryById = (id) => api.get(`getCategoryById/${id}`);
-export const createCategory = (data) => api.post("createCategory", data);
-export const updateCategory = (data) => api.put("updateCategory", data);
-export const deleteCategory = (_id) =>
-  api.delete("deleteCategory", { data: { _id } });
+export const getCategories = () => api.get("api/category/all");
+export const getCategoryById = (id) => api.get(`api/category/${id}`);
+export const getCategoriesWithSubcategories = () =>
+  api.get("api/categories/with-subcategories");
+export const createCategory = (data) => api.post("api/category/create", data);
+export const updateCategory = (data) =>
+  api.put(`api/category/update/${data._id}`, data);
+export const deleteCategory = (id) => api.delete(`api/category/delete/${id}`);
 
 // ── SUB-CATEGORIES ───────────────────────────────────────────────
-export const getSubCategories = () => api.get("getSubCategories");
-export const getSubCategoriesByCategoryId = (categoryId) =>
-  api.post("getCategoryWithSubCategories", { categoryId });
-export const createSubCategory = (data) => api.post("createSubCategory", data);
-export const updateSubCategory = (data) => api.put("updateSubCategory", data);
-export const deleteSubCategory = (_id) =>
-  api.delete("deleteSubCategory", { data: { _id } });
+export const getSubCategories = () => api.get("api/subcategory/all");
+export const getSubCategoryById = (id) => api.get(`api/subcategory/${id}`);
+export const createSubCategory = (data) =>
+  api.post("api/subcategory/create", data);
+export const updateSubCategory = (data) =>
+  api.put(`api/subcategory/update/${data._id}`, data);
+export const deleteSubCategory = (id) =>
+  api.delete(`api/subcategory/delete/${id}`);
 
 // ── SUB-SUB-CATEGORIES ───────────────────────────────────────────
-export const getSubSubCategories = () => api.get("getSub_SubCategories");
-export const getSubSubCategoryById = (subCategoryId) =>
-  api.post("getSub_SubCategoryById", { subCategoryId });
+export const getSubSubCategories = () => api.get("api/sub-subcategory/all");
+export const getSubSubCategoryById = (id) =>
+  api.get(`api/sub-subcategory/${id}`);
+export const getSubSubByCategory = (categoryId) =>
+  api.get(`api/sub-subcategory/by-category/${categoryId}`);
 export const createSubSubCategory = (data) =>
-  api.post("createSub_SubCategory", data);
+  api.post("api/sub-subcategory/create", data);
 export const updateSubSubCategory = (data) =>
-  api.put("updateSub_SubCategory", data);
-export const deleteSubSubCategory = (_id) =>
-  api.delete("deleteSub_SubCategory", { data: { _id } });
+  api.put(`api/sub-subcategory/update/${data._id}`, data);
+export const deleteSubSubCategory = (id) =>
+  api.delete(`api/sub-subcategory/delete/${id}`);
 
 // ── PRODUCTS ─────────────────────────────────────────────────────
-export const getProducts = () => api.get("getproducts");
-export const getProductsBySubSubCategoryId = (subsubcategoryId) =>
-  api.post("getproductsbyid", { subsubcategoryId });
-export const createProduct = (data) => api.post("createproduct", data);
-export const updateProduct = (data) => api.put("updateproduct", data);
-export const deleteProduct = (_id) =>
-  api.delete("deleteproduct", { data: { _id } });
+export const getAllProducts = () => api.get("api/product/all");
+export const getProductById = (id) => api.get(`api/product/${id}`);
+export const getProductsByCategory = (categoryId) =>
+  api.get(`api/products/category/${categoryId}`);
+export const getProductsBySubSubCategory = (subSubcategoryId) =>
+  api.get(`api/products/sub-subcategory/${subSubcategoryId}`);
+export const getProductsFiltered = (params) =>
+  api.get("api/products/filter", { params });
+export const getProducts = () => api.get("api/products");
+export const searchProducts = (q) => api.get(`api/product/search?q=${q}`);
+export const createProduct = (data) => api.post("api/product/create", data);
+export const updateProduct = (data) =>
+  api.put(`api/product/update/${data._id}`, data);
+export const deleteProduct = (id) => api.delete(`api/product/delete/${id}`);
 
 // ── BANNERS ──────────────────────────────────────────────────────
-export const getBanners = () => api.get("getBanners");
-export const createBanner = (data) => api.post("createBanner", data);
-export const updateBanner = (_id, bannerImage) =>
-  api.put("updateBanner", { _id, bannerImage });
+export const getBanners = () => api.get("api/banner");
+export const createBanner = (data) => api.post("api/banner/create", data);
+export const updateBanner = (id, data) =>
+  api.put(`api/banner/update/${id}`, data);
 
-// ── REVIEWS ──────────────────────────────────────────────────────
-export const getReviews = () => api.get("getReviews");
-export const addReview = (data) => api.post("addreview", data);
-export const updateReview = (data) => api.post("updatereview", data);
-export const deleteReview = (_id) => api.post("deletereview", { _id });
+// ── OFFERS ───────────────────────────────────────────────────────
+export const getOffers = () => api.get("api/offer");
+export const createOffer = (data) => api.post("api/offer/create", data);
+export const updateOffer = (id, data) =>
+  api.put(`api/offer/update/${id}`, data);
+export const deleteOffer = (id) => api.delete(`api/offer/delete/${id}`);
 
 // ── USERS ────────────────────────────────────────────────────────
-export const getAllUsers = () => api.get("users");
-export const deleteUser = (userId) =>
-  api.delete("deleteUserById", { data: { userId } });
+export const getAllUsers = () => api.get("api/user/all");
+export const deleteUser = (id) => api.delete(`api/user/${id}`);
 
-// ── LOGO / BRAND ─────────────────────────────────────────────────
-export const getLogo = () => api.get("getLogo");
-export const createLogo = (data) => api.post("createLogo", data);
-export const updateLogo = (data) => api.put("updateLogo", data);
-export const deleteLogo = (id) => api.delete("deleteLogo", { data: { id } });
-
-// ── PINCODE ──────────────────────────────────────────────────────
-export const getPincodes = () => api.get("getPincode");
-export const createPincode = (data) => api.post("createpin", data);
-export const deletePincode = (id) =>
-  api.delete("deletePincode", { data: { id } });
-
-// ── FESTIVAL DISCOUNT ────────────────────────────────────────────
-export const getFestivalDiscounts = () => api.get("getfestival");
-export const updateFestivalDiscount = (id, data) =>
-  api.put(`festival/${id}`, data);
-
-// ── COUPON CODES ─────────────────────────────────────────────────
-export const getCoupons = () => api.get("getCoupons");
-export const createCoupon = (data) => api.post("createCouponcode", data);
-export const deleteCoupon = (id) => api.delete(`deleteCoupon/${id}`);
-
-// ── ORDERS ───────────────────────────────────────────────────────
-export const getOrders = () => api.get("getorders");
+// ── ORDERS / STATS ───────────────────────────────────────────────
+export const getStats = () => api.get("api/order/stats");
+export const getOrders = () => api.get("api/kitchen/orders");
 export const updateOrderStatus = (id, status) =>
-  api.put(`updateOrder/${id}`, { status });
-export const getStats = () => api.get("getStats");
+  api.put(`api/kitchen/order/status/${id}`, { status });
+
+// ── COUPONS ──────────────────────────────────────────────────────
+export const getCoupons = () => api.get("api/coupon/all");
+export const getUsedCoupons = () => api.get("api/coupon/used");
+// FIX: removed the broken `superAdminGetUsedCoupons` that referenced
+//      undefined `saApi` — it caused a ReferenceError crash on import.
+export const getCouponByCode = (code) => api.get(`api/coupon/${code}`);
+export const createCoupon = (data) => api.post("api/coupon/create", data);
+export const applyCoupon = (data) => api.post("api/coupon/apply", data);
+export const deleteCoupon = (id) => api.delete(`api/coupon/delete/${id}`);
 
 // ── ADDRESS ──────────────────────────────────────────────────────
-export const getAddresses = () => api.get("getAllAddress");
-export const deleteAddress = (_id) =>
-  api.delete("deleteAddress", { data: { _id } });
+export const getAllAddress = () => api.get("api/address/all/data");
+export const getAddress = (userId) => api.get(`api/address/${userId}`);
+export const addAddress = (data) => api.post("api/address/add", data);
+export const updateAddress = (id, data) =>
+  api.put(`api/address/update/${id}`, data);
 
-// ── SWIPER ───────────────────────────────────────────────────────
-export const getSwipers = () => api.get("getSwiper");
-export const createSwiper = (data) => api.post("createSwiper", data);
-export const deleteSwiper = (_id) =>
-  api.delete("deleteSwiper", { data: { _id } });
+// ── REVIEWS ──────────────────────────────────────────────────────
+export const getAllReviews = () => api.get("api/review/all/data");
+export const getReview = (productId) => api.get(`api/review/${productId}`);
+export const addReview = (data) => api.post("api/review/add", data);
+export const updateReview = (id, data) =>
+  api.put(`api/review/update/${id}`, data);
+export const deleteReview = (id) => api.delete(`api/review/delete/${id}`);
+
+// ── LOGO ─────────────────────────────────────────────────────────
+export const getLogo = () => api.get("api/logo");
+export const createLogo = (data) => api.post("api/logo/create", data);
+export const updateLogo = (id, data) => api.put(`api/logo/update/${id}`, data);
+export const deleteLogo = (id) => api.delete(`api/logo/delete/${id}`);
+
+// ── SEO ──────────────────────────────────────────────────────────
+export const getAllSeo = () => api.get("api/seo/all");
+export const getSeoById = (id) => api.get(`api/seo/${id}`);
+export const createSeo = (data) => api.post("api/seo/create", data);
+export const updateSeo = (id, data) => api.put(`api/seo/update/${id}`, data);
+export const deleteSeo = (id) => api.delete(`api/seo/delete/${id}`);
+
+// ── PINCODE ──────────────────────────────────────────────────────
+export const getPincodes = () => api.get("api/pincode/all");
+export const createPincode = (data) => api.post("api/pincode/create", data);
+export const updatePincode = (id, data) =>
+  api.put(`api/pincode/update/${id}`, data);
+// FIX: was api.delete("deletePincode", { data: { id } }) — wrong URL format
+export const deletePincode = (id) => api.delete(`api/pincode/delete/${id}`);
+
+// ── SWIPERS ──────────────────────────────────────────────────────
+export const getSwipers = () => api.get("api/swiper/all");
+export const createSwiper = (data) => api.post("api/swiper/create", data);
+export const deleteSwiper = (id) => api.delete(`api/swiper/delete/${id}`);
+
+// ── CART ─────────────────────────────────────────────────────────
+export const getAllCartData = () => api.get("api/cart/all/data");
+export const getCart = (userId) => api.get(`api/cart/${userId}`);
+export const addToCart = (data) => api.post("api/cart/add", data);
+export const updateCartQty = (data) => api.put("api/cart/update", data);
+export const removeFromCart = (data) => api.delete("api/cart/remove", { data });
+export const clearCart = (userId) => api.delete(`api/cart/clear/${userId}`);
+
+// ── ENQUIRY ──────────────────────────────────────────────────────
+export const createEnquiry = (data) => api.post("api/enquiry/create", data);
+
+// ── ALIASES — backward compatibility ─────────────────────────────
+export const getReviews = getAllReviews;
+export const getAddresses = getAllAddress;
 
 export default api;

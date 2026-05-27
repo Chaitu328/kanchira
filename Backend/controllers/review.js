@@ -55,19 +55,24 @@ exports.getAllReviews = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
-// UPDATE: PUT /api/reviews/:id
+// UPDATE: PUT /api/review/update/:id
 exports.updateReview = async (req, res) => {
   try {
-    const { rating, text, tags, _id, images } = req.body;
-    let updateData = {
-      rating,
-      text,
-      tags, images, _id
-    };
+    // ✅ Read id from URL param and ensure it is a plain string
+    const raw = req.params.id || req.body._id;
+    const id  = raw && typeof raw === 'object' ? String(raw) : raw;
 
+    if (!id || id === '[object Object]') {
+      return res.status(400).json({ message: 'Invalid review id' });
+    }
 
+    const { rating, text, tags, images } = req.body;
 
-    const updatedReview = await Review.findByIdAndUpdate(_id, updateData, { new: true });
+    const updatedReview = await Review.findByIdAndUpdate(
+      id,
+      { rating, text, tags, images },
+      { new: true }
+    );
 
     if (!updatedReview) return res.status(404).json({ message: 'Review not found' });
 
@@ -78,14 +83,13 @@ exports.updateReview = async (req, res) => {
   }
 }
 
-// DELETE: DELETE /api/reviews/:id
+// DELETE: DELETE /api/review/delete/:id
 exports.deleteReview = async (req, res) => {
   try {
-    const review = await Review.findByIdAndDelete(req.body._id);
+    // ✅ Read id from URL param (DELETE requests may have no body)
+    const id = req.params.id || req.body?._id;
+    const review = await Review.findByIdAndDelete(id);
     if (!review) return res.status(404).json({ message: 'Review not found' });
-
-    // Optional: delete image files from disk
-
 
     res.status(200).json({ responseCode: 200, message: 'Review deleted successfully' });
   } catch (err) {
@@ -93,4 +97,3 @@ exports.deleteReview = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 }
-

@@ -1,10 +1,32 @@
 const { getPhonePeProdToken } = require("../middleware/payment");
 const axios = require("axios");
-const Order = require("../models/order");
+const Order  = require("../models/order");
+const Cart   = require("../models/cart");
+const Coupon = require("../models/couponcode"); // ← ADDED
+
+// ═══════════════════════════════════════════════════════════════
+// Helper: look up the admin who created a coupon code.
+// Returns { adminId, adminName, adminEmail, adminPhone } or nulls.
+// ═══════════════════════════════════════════════════════════════
+async function resolveCouponAdmin(couponCode) {
+  if (!couponCode) return null;
+  try {
+    const coupon = await Coupon.findOne({ code: String(couponCode).toUpperCase() })
+      .populate("adminId", "name email phone");
+    if (!coupon || !coupon.adminId) return null;
+    return {
+      adminId:    coupon.adminId._id,
+      adminName:  coupon.adminId.name  || "",
+      adminEmail: coupon.adminId.email || "",
+      adminPhone: coupon.adminId.phone || "",
+    };
+  } catch {
+    return null;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // CREATE PAYMENT / PLACE ORDER
-// Handles both COD (saves order directly) and Online (PhonePe)
 // ═══════════════════════════════════════════════════════════════
 exports.createPayment = async (req, res) => {
   try {
@@ -30,6 +52,9 @@ exports.createPayment = async (req, res) => {
     if (!totalAmount || totalAmount <= 0)
       return res.status(400).json({ responseCode: 400, message: "Invalid total amount." });
 
+    // ── Snapshot the coupon's creator before saving the order ────
+    const couponCreatedBy = couponCode ? await resolveCouponAdmin(couponCode) : null;
+
     // ── COD — save order immediately ─────────────────────────────
     if (!paymentMethod || paymentMethod === "COD") {
       const order = new Order({
@@ -37,17 +62,23 @@ exports.createPayment = async (req, res) => {
         address,
         items,
         totalAmount,
-        spinDiscount: spinDiscount || 0,
-        couponCode: couponCode || "",
-        couponDiscount: couponDiscount || 0,
-        festivalDiscount: festivalDiscount || 0,
-        paymentMethod: "COD",
-        paymentStatus: "Pending",
-        orderType: orderType || "cart",
-        status: "Pending",
+        spinDiscount:    spinDiscount    || 0,
+        couponCode:      couponCode      || "",
+        couponDiscount:  couponDiscount  || 0,
+        festivalDiscount:festivalDiscount|| 0,
+        couponCreatedBy: couponCreatedBy || {},
+        paymentMethod:   "COD",
+        paymentStatus:   "Pending",
+        orderType:       orderType || "cart",
+        status:          "Pending",
       });
 
       const savedOrder = await order.save();
+
+      if (orderType !== "buynow") {
+        try { await Cart.findOneAndUpdate({ userId }, { items: [] }); }
+        catch (e) { console.warn("Failed to clear cart after order:", e.message); }
+      }
 
       return res.status(200).json({
         responseCode: 200,
@@ -69,8 +100,8 @@ exports.createPayment = async (req, res) => {
         message: "Payment for your order",
         merchantUrls: {
           redirectUrl: `${process.env.FRONTEND_URL}/payment_callback?code=PAYMENT_SUCCESS`,
-          failureUrl: `${process.env.FRONTEND_URL}/payment_callback?code=PAYMENT_FAILED`,
-          cancelUrl: `${process.env.FRONTEND_URL}/payment_callback?code=PAYMENT_FAILED`,
+          failureUrl:  `${process.env.FRONTEND_URL}/payment_callback?code=PAYMENT_FAILED`,
+          cancelUrl:   `${process.env.FRONTEND_URL}/payment_callback?code=PAYMENT_FAILED`,
         },
       },
     };
@@ -107,16 +138,17 @@ exports.createPayment = async (req, res) => {
       address,
       items,
       totalAmount,
-      spinDiscount: spinDiscount || 0,
-      couponCode: couponCode || "",
-      couponDiscount: couponDiscount || 0,
-      festivalDiscount: festivalDiscount || 0,
-      paymentMethod: "ONLINE",
-      paymentStatus: "Pending",
+      spinDiscount:     spinDiscount    || 0,
+      couponCode:       couponCode      || "",
+      couponDiscount:   couponDiscount  || 0,
+      festivalDiscount: festivalDiscount|| 0,
+      couponCreatedBy:  couponCreatedBy || {},
+      paymentMethod:    "ONLINE",
+      paymentStatus:    "Pending",
       merchantTransactionId,
       phonepeRedirectUrl: redirectUrlPhonepe,
-      orderType: orderType || "cart",
-      status: "Pending",
+      orderType:        orderType || "cart",
+      status:           "Pending",
     });
 
     await order.save();
@@ -137,7 +169,7 @@ exports.createPayment = async (req, res) => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// VERIFY PAYMENT (PhonePe callback — marks order as Paid)
+// VERIFY PAYMENT (PhonePe callback)
 // ═══════════════════════════════════════════════════════════════
 exports.verifyPayment = async (req, res) => {
   try {
@@ -196,17 +228,11 @@ exports.verifyPayment = async (req, res) => {
 exports.getOrdersByUser = async (req, res) => {
   try {
     const { userId } = req.body;
-
     if (!userId)
       return res.status(400).json({ responseCode: 400, message: "userId is required." });
 
     const orders = await Order.find({ userId }).sort({ createdAt: -1 });
-
-    res.status(200).json({
-      responseCode: 200,
-      message: "Orders fetched successfully",
-      orders,
-    });
+    res.status(200).json({ responseCode: 200, message: "Orders fetched successfully", orders });
   } catch (error) {
     console.error("Error fetching orders:", error.message);
     res.status(500).json({ responseCode: 500, message: "Failed to fetch orders." });
@@ -214,8 +240,7 @@ exports.getOrdersByUser = async (req, res) => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// GET STATS — Total Orders & Total Sales (ALL orders, any status)
-// GET /getStats
+// GET STATS
 // ═══════════════════════════════════════════════════════════════
 exports.getStats = async (req, res) => {
   try {
