@@ -1,23 +1,18 @@
 const Coupon = require("../models/couponcode");
+const Order  = require("../models/order");   // ← ADDED to check past usage
+const Admin  = require("../models/admin");
 const generateCouponCode = require("../middleware/couponGenerator");
 
-// ✅ Create Coupon (auto-generate code if not provided)
+// ✅ Create Coupon
 exports.createCoupon = async (req, res) => {
   try {
     let { code, type, value, expiryDate } = req.body;
-
-    // If user didn’t send a code, generate automatically
-    if (!code) {
-      code = generateCouponCode(8); // 8-char random code
-    }
+    if (!code) code = generateCouponCode(8);
 
     const coupon = new Coupon({
-      code,
-      type,
-      value,
-      expiryDate,
+      code, type, value, expiryDate,
+      adminId: req.user?.id || null,
     });
-
     await coupon.save();
     res.status(201).json({ message: "Coupon created successfully", coupon });
   } catch (error) {
@@ -29,7 +24,9 @@ exports.createCoupon = async (req, res) => {
 // ✅ Get all coupons
 exports.getCoupons = async (req, res) => {
   try {
-    const coupons = await Coupon.find();
+    const coupons = await Coupon.find()
+      .populate("adminId", "name email phone")
+      .sort({ createdAt: -1 });
     res.json(coupons);
   } catch (error) {
     res.status(500).json({ message: "Error fetching coupons", error });
@@ -40,16 +37,11 @@ exports.getCoupons = async (req, res) => {
 exports.getCouponByCode = async (req, res) => {
   try {
     const { code } = req.params;
-    const coupon = await Coupon.findOne({ code, active: true });
+    const coupon = await Coupon.findOne({ code, active: true })
+      .populate("adminId", "name email phone");
 
-    if (!coupon) {
-      return res.status(404).json({ message: "Coupon not found or inactive" });
-    }
-
-    // Expired?
-    if (new Date() > coupon.expiryDate) {
-      return res.status(400).json({ message: "Coupon expired" });
-    }
+    if (!coupon) return res.status(404).json({ message: "Coupon not found or inactive" });
+    if (new Date() > coupon.expiryDate) return res.status(400).json({ message: "Coupon expired" });
 
     res.json(coupon);
   } catch (error) {
@@ -57,18 +49,25 @@ exports.getCouponByCode = async (req, res) => {
   }
 };
 
-// ✅ Apply coupon
+// ✅ Apply coupon — FIX BUG 3: block reuse by same user
 exports.applyCoupon = async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, amount, userId } = req.body;
+
     const coupon = await Coupon.findOne({ code, active: true });
+    if (!coupon) return res.status(404).json({ message: "Coupon not found or inactive" });
+    if (new Date() > coupon.expiryDate) return res.status(400).json({ message: "Coupon expired" });
 
-    if (!coupon) {
-      return res.status(404).json({ message: "Coupon not found or inactive" });
-    }
-
-    if (new Date() > coupon.expiryDate) {
-      return res.status(400).json({ message: "Coupon expired" });
+    // ── Per-user reuse check ──────────────────────────────────────
+    if (userId) {
+      const alreadyUsed = await Order.findOne({
+        userId,
+        couponCode: code,
+        status: { $nin: ["Cancelled"] },
+      });
+      if (alreadyUsed) {
+        return res.status(400).json({ message: "You have already used this coupon" });
+      }
     }
 
     let discount = 0;
@@ -77,13 +76,12 @@ exports.applyCoupon = async (req, res) => {
     } else if (coupon.type === "flat") {
       discount = coupon.value;
     }
-
-    const finalAmount = amount - discount;
+    discount = Math.min(discount, amount); // never exceed order total
 
     res.json({
       message: "Coupon applied successfully",
       discount,
-      finalAmount,
+      finalAmount: amount - discount,
     });
   } catch (error) {
     res.status(500).json({ message: "Error applying coupon", error });

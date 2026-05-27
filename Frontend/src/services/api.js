@@ -1,426 +1,56 @@
 import axios from 'axios'
 
 // ─── Base URL ──────────────────────────────────────────────────────────────────
-const BASE_URL = 'https://kanchira-backend-fdlk.onrender.com'
+// Backend mounts all routes at /api (app.use("/api", authRoutes) in index.js)
+// BASE_URL already includes /api so all paths below are relative to it — no prefix needed.
+const BASE_URL = 'https://kanchira-backend-1.onrender.com/api'
 
 const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 })
 
-// ─── Global Token Interceptor ──────────────────────────────────────────────────
+// ─── Token Interceptor ────────────────────────────────────────────────────────
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
+// ─── Auto-logout on 401 ───────────────────────────────────────────────────────
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('admin')
+      window.location.href = '/login'
+    }
+    return Promise.reject(err)
+  },
+)
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  👤  AUTH / USERS
-//  Backend routes: POST /userRegister, POST /userLogin, POST /verifyOtp,
-//                  POST /resendOtp, POST /sentOtp, POST /sentVerifyOtp,
-//                  POST /setPassword, POST /updateUser, GET /users,
-//                  DELETE /deleteUserById, POST /getDetails
 // ─────────────────────────────────────────────────────────────────────────────
-/** Register user — sends OTP to phone.
- *  Body: { phone, name?, email?, password? }
- *  Response: { responseCode, message, userId }
- */
-export const userRegister = (data) => api.post('/userRegister', data)
-
-/** Login user.
- *  Body: { emailOrPhone, password }
- *  Response: { responseCode, token, userId, name, phone, email }
- */
-export const userLogin = (data) => api.post('/userLogin', data)
-
-/** Verify OTP after registration.
- *  Body: { phone, OTP }
- *  Response: { responseCode, message, token, userId }
- */
-export const verifyOtp = (data) => api.post('/verifyOtp', data)
-
-/** Resend OTP.
- *  Body: { phone }
- */
-export const resendOtp = (data) => api.post('/resendOtp', data)
-
-/** Send OTP for forgot-password flow.
- *  Body: { phone }
- */
-export const sentOtp = (data) => api.post('/sentOtp', data)
-
-/** Verify OTP for forgot-password flow.
- *  Body: { phone, OTP }
- */
-export const sentVerifyOtp = (data) => api.post('/sentVerifyOtp', data)
-
-/** Set new password after OTP verify.
- *  Body: { phone, password }
- */
-export const setPassword = (data) => api.post('/setPassword', data)
-
-/** Get all users (admin).
- *  Response: [{ _id, name, phone, email, isVerified, createdAt }]
- */
-export const getUsers = () => api.get('/users')
-
-
-/** Delete user by ID (admin).
- *  Body: { userId }
- */
-export const deleteUserById = (userId) =>
-  api.delete('/deleteUserById', { data: { userId } })
-
-/** Get profile of logged-in user.
- *  Body: { userId }  (userId from localStorage)
- *  Response: { user: { _id, name, phone, email } }
- */
-export const getProfile = (userId) => api.post('/getDetails', { userId })
-
-/** Update user profile.
- *  Body: { userId, name?, email?, phone? }
- */
-export const updateUser = (data) => api.post('/updateUser', data)
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  🖼️  LOGO
-//  Routes: GET /getLogo, PUT /updateLogo
-// ─────────────────────────────────────────────────────────────────────────────
-export const getLogo = () => api.get('/getLogo')
-
-/** Update logo.
- *  Body: { logoUrl }
- */
-export const updateLogo = (data) => api.put('/updateLogo', data)
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  📂  CATEGORIES
-//  Routes: GET /getCategories, POST /getCategoryWithSubCategories,
-//          POST /createCategory, PUT /updateCategory, DELETE /deleteCategory,
-//          POST /getCategory/:categoryId
-// ─────────────────────────────────────────────────────────────────────────────
-export const getCategories = () => api.get('/getCategories')
-
-/** Get single category by ID.
- *  Param: categoryId in URL
- */
-export const getCategoryById = (categoryId) =>
-  api.post(`/getCategory/${categoryId}`)
-
-/** Get categories with their subcategories nested.
- *  Response: [{ _id, name, subCategories: [...] }]
- */
-export const getCategoriesWithSubcategories = () =>
-  api.post('/getCategoryWithSubCategories')
-
-export const createCategory = (data) => api.post('/createCategory', data)
-export const updateCategory = (data) => api.put('/updateCategory', data)
-export const deleteCategory = (categoryId) =>
-  api.delete('/deleteCategory', { data: { categoryId } })
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  📂  SUB-CATEGORIES
-//  Routes: GET /getSubCategories, POST /getCategoryById,
-//          POST /createSubCategory, PUT /updateSubCategory,
-//          DELETE /deleteSubCategory
-// ─────────────────────────────────────────────────────────────────────────────
-export const getSubCategories = () => api.get('/getSubCategories')
-
-/** Get subcategory by ID.
- *  Body: { subCategoryId }
- */
-export const getSubCategoryById = (subCategoryId) =>
-  api.post('/getCategoryById', { subCategoryId })
-
-export const createSubCategory = (data) => api.post('/createSubCategory', data)
-export const updateSubCategory = (data) => api.put('/updateSubCategory', data)
-export const deleteSubCategory = (subCategoryId) =>
-  api.delete('/deleteSubCategory', { data: { subCategoryId } })
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  📂  SUB-SUB-CATEGORIES
-//  Routes: GET /getSub_SubCategories, POST /getSub_SubCategoryById,
-//          POST /getSub_SubCategoryByCategoryId,
-//          POST /createSub_SubCategory, PUT /updateSub_SubCategory,
-//          DELETE /deleteSub_SubCategory
-// ─────────────────────────────────────────────────────────────────────────────
-export const getSub_SubCategories = () => api.get('/getSub_SubCategories')
-
-/** Get sub-subcategory by ID.
- *  Body: { subCategoryId }
- */
-export const getSub_SubCategoryById = (subCategoryId) =>
-  api.post('/getSub_SubCategoryById', { subCategoryId })
-
-/** Get all sub-subcategories under a category.
- *  Body: { categoryId }
- */
-export const getSub_SubCategoryByCategoryId = (categoryId) =>
-  api.post('/getSub_SubCategoryByCategoryId', { categoryId })
-
-export const createSub_SubCategory = (data) =>
-  api.post('/createSub_SubCategory', data)
-export const updateSub_SubCategory = (data) =>
-  api.put('/updateSub_SubCategory', data)
-export const deleteSub_SubCategory = (subCategoryId) =>
-  api.delete('/deleteSub_SubCategory', { data: { subCategoryId } })
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  🛍️  PRODUCTS
-//  Routes: GET /getproducts, GET /getproductsbyid/:productId,
-//          POST /getProductsBySubCategory, POST /getProductsByIds,
-//          POST /getByCategoryId, POST /getSubSubCategorieIdByProducts,
-//          POST /createproduct, PUT /updateproduct, DELETE /deleteproduct,
-//          POST /search
-// ─────────────────────────────────────────────────────────────────────────────
-export const getProducts = () => api.get('/getproducts')
-
-export const getProductById = (productId) =>
-  api.get(`/getproductsbyid/${productId}`)
-
-/** Get products filtered by sub-subcategory.
- *  Body: { subsubcategoryId }
- */
-export const getProductsBySubCategory = (subsubcategoryId) =>
-  api.post('/getProductsBySubCategory', { subsubcategoryId })
-
-/** Get products by array of IDs.
- *  Body: { ids: [...] }
- */
-export const getProductsByIds = (data) => api.post('/getProductsByIds', data)
-
-/** Get products by category ID.
- *  Body: { categoryId }
- */
-export const getProductsByCategory = (categoryId) =>
-  api.post('/getByCategoryId', { categoryId })
-
-/** Search products.
- *  Body: { query }
- */
-export const searchProducts = (query) => api.post('/search', { query })
-
-export const createProduct = (data) => api.post('/createproduct', data)
-export const updateProduct = (data) => api.put('/updateproduct', data)
-export const deleteProduct = (productId) =>
-  api.delete('/deleteproduct', { data: { productId } })
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  🛒  CART
-//  Routes: POST /addcart, POST /getcart, POST /updatecartQunatity,
-//          DELETE /removeItemCart, POST /clearCart, GET /getAllCartData
-//
-//  IMPORTANT – cart is stored server-side per userId.
-//  For GUEST users, manage cart in localStorage (see CartPage).
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Get cart for a user.
- *  Body: { userId }
- *  Response: { cart: { userId, items: [{ productId, variant, quantity, image }] } }
- */
-export const getCart = (userId) => api.post('/getcart', { userId })
-
-/** Add item(s) to cart.
- *  Body: { userId, items: [{ productId, variant, quantity, image }] }
- *  Note: productId must be a MongoDB ObjectId string.
- */
-export const addToCart = (data) => api.post('/addcart', data)
-
-/** Update quantity of a specific cart item.
- *  Body: { userId, productId, variant, quantity }
- */
-export const updateCartQuantity = (data) =>
-  api.post('/updatecartQunatity', data)
-
-/** Remove a specific item from cart.
- *  Body: { userId, productId, variant }
- *  Note: backend matches on productId + variant.fabric
- */
-export const removeItemCart = (data) =>
-  api.delete('/removeItemCart', { data })
-
-/** Clear entire cart for a user.
- *  Body: { userId }
- */
-export const clearCart = (userId) => api.post('/clearCart', { userId })
-
-/** Get all cart data (admin).
- *  Response: [Cart]
- */
-export const getAllCartData = () => api.get('/getAllCartData')
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  ❤️  WISHLIST
-//  Routes: POST /addWishlist, POST /allwishlist, DELETE /removewishlist
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Add product to wishlist.
- *  Body: { userId, productId }
- *  Response: { message, item }
- */
-export const addWishlist = (data) => api.post('/addWishlist', data)
-
-/** Get all wishlist items for a user.
- *  Body: { userId }
- *  Response: [{ _id, userId, productId: <populated product> }]
- */
-export const getWishlist = (userId) => api.post('/allwishlist', { userId })
-
-/** Remove item from wishlist.
- *  Body: { wishlistId }  — use the wishlist document _id, NOT productId
- */
-export const removeWishlist = (wishlistId) =>
-  api.delete('/removewishlist', { data: { wishlistId } })
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  ⭐  REVIEWS
-//  Routes: POST /addreview, POST /getreview, POST /updatereview,
-//          POST /deletereview, GET /getReviews
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Add a review.
- *  Body: { userId, productId, rating, comment }
- */
-export const addReview = (data) => api.post('/addreview', data)
-
-/** Get reviews for a product.
- *  Body: { productId }
- */
-export const getReview = (productId) => api.post('/getreview', { productId })
-
-/** Update a review.
- *  Body: { reviewId, rating?, comment? }
- */
-export const updateReview = (data) => api.post('/updatereview', data)
-
-/** Delete a review.
- *  Body: { reviewId }
- */
-export const deleteReview = (reviewId) =>
-  api.post('/deletereview', { reviewId })
-
-/** Get all reviews (admin).
- */
-export const getAllReviews = () => api.get('/getReviews')
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  🎟️  COUPONS
-//  Routes: GET /getCoupons, GET /getCouponByCode/:code,
-//          POST /createCouponcode, POST /getCoupons (apply)
-// ─────────────────────────────────────────────────────────────────────────────
-export const getCoupons = () => api.get('/getCoupons')
-
-/** Get coupon details by code string.
- *  Response: { coupon: { _id, code, type, value, expiryDate } }
- */
-export const getCouponByCode = (code) => api.get(`/getCouponByCode/${code}`)
-
-/** Apply / validate a coupon (returns discount info).
- *  Body: { code, totalAmount }
- */
-export const applyCoupon = (data) => api.post('/getCoupons', data)
-
-export const createCoupon = (data) => api.post('/createCouponcode', data)
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  🎉  FESTIVALS
-//  Routes: GET /getfestival, POST /createfistival, PUT /festival/:id
-// ─────────────────────────────────────────────────────────────────────────────
-export const getFestival = () => api.get('/getfestival')
-export const createFestival = (data) => api.post('/createfistival', data)
-export const updateFestival = (id, data) => api.put(`/festival/${id}`, data)
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  🎯  BANNERS
-//  Routes: GET /getBanners, POST /createBanner, PUT /updateBanner
-// ─────────────────────────────────────────────────────────────────────────────
-export const getBanners = () => api.get('/getBanners')
-export const createBanner = (data) => api.post('/createBanner', data)
-export const updateBanner = (data) => api.put('/updateBanner', data)
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  💳  PAYMENT & ORDERS
-//  Routes: POST /createPayment, POST /verifyPayment, POST /getOrdersByUser
-//
-//  createPayment payload:
-//  { userId, address, items, totalAmount, paymentMethod, orderType,
-//    couponCode?, couponDiscount?, spinDiscount?, festivalDiscount? }
-// ─────────────────────────────────────────────────────────────────────────────
-export const createPayment = (payload) => api.post('/createPayment', payload)
-
-/** Verify PhonePe payment.
- *  Body: { merchantOrderId }
- */
-export const verifyPayment = (merchantOrderId) =>
-  api.post('/verifyPayment', { merchantOrderId })
-
-/** Get orders for a user.
- *  Body: { userId }
- */
-export const getOrdersByUser = (userId) =>
-  api.post('/getOrdersByUser', { userId })
-
-/** Get all orders (admin/kitchen).
- */
-export const getOrders = () => api.get('/getorders')
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  📍  PINCODES
-//  Routes: GET /getPincode, POST /createpin, POST /updatepin
-// ─────────────────────────────────────────────────────────────────────────────
-export const getPincodes = () => api.get('/getPincode')
-export const createPinCode = (data) => api.post('/createpin', data)
-export const updatePinCode = (data) => api.post('/updatepin', data)
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  📩  CONTACT / ENQUIRY
-//  Routes: POST /submitForm
-// ─────────────────────────────────────────────────────────────────────────────
-export const submitContactForm = (data) => api.post('/submitForm', data)
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  🏠  ADDRESS
-//  Routes: POST /addAddress, POST /getAddress, PUT /updateAddress,
-//          POST /deleteAddress, GET /getAllAddress
-//
-//  Address fields: { userId, fullName, phoneNumber, houseNumber,
-//                    currentAddress, state, city, district, pincode }
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Add address.
- *  Body: { userId, fullName, phoneNumber, houseNumber, currentAddress,
- *          state, city, district, pincode }
- */
-export const addAddress = (data) => api.post('/addAddress', data)
-
-/** Get addresses for logged-in user.
- *  Body: { userId }  — userId is read from token on backend.
- *  Response: { success, address: [...] }
- */
-export const getAddress = (userId) => api.post('/getAddress', { userId })
-
-/** Update address.
- *  Body: { _id, userId, fullName, phoneNumber, houseNumber,
- *          currentAddress, state, city, district, pincode }
- */
-export const updateAddress = (data) => api.put('/updateAddress', data)
-
-/** Delete address.
- *  Body: { _id }
- */
-export const deleteAddress = (_id) =>
-  api.post('/deleteAddress', { _id })
-
-/** Get all addresses (admin).
- */
-export const getAllAddress = () => api.get('/getAllAddress')
+export const userRegister   = (data)     => api.post('/user/register', data)
+export const verifyOtp      = (data)     => api.post('/user/verify', data)
+export const resendOtp      = (data)     => api.post('/user/resend-otp', data)
+export const userLogin      = (data)     => api.post('/user/login', data)
+export const sentOtp        = (data)     => api.post('/user/send-otp', data)
+export const sentVerifyOtp  = (data)     => api.post('/user/verify-otp', data)
+export const setPassword    = (data)     => api.post('/user/set-password', data)
+export const updateUser     = (id, data) => api.put(`/user/update/${id}`, data)
+export const getSearchSlugs = ()         => api.get('/user/search-slugs')
+export const getAllUsers     = ()         => api.get('/user/all')
+export const deleteUser     = (id)       => api.delete(`/user/${id}`)
+export const getProfile     = (id)       => api.get(`/user/profile/${id}`)
+
+export const adminRegister  = (data)     => api.post('/admin/register', data)
+export const adminLogin     = (data)     => api.post('/admin/login', data)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  🖼️  IMAGE UPLOAD
-//  Route: POST /upload  (multipart/form-data, field name: "image")
-//  Response: { url }
 // ─────────────────────────────────────────────────────────────────────────────
 export const uploadImage = (formData) =>
   api.post('/upload', formData, {
@@ -428,20 +58,189 @@ export const uploadImage = (formData) =>
   })
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  🔍  SEO
-//  Routes: POST /addSeo, PUT /updateSeo, GET /getSeo,
-//          POST /getSeoById, DELETE /deleteSeo
+//  🛍️  PRODUCTS
 // ─────────────────────────────────────────────────────────────────────────────
-export const createSeo = (data) => api.post('/addSeo', data)
-export const updateSeo = (data) => api.put('/updateSeo', data)
-export const getSeo = () => api.get('/getSeo')
-export const getSeoById = (data) => api.post('/getSeoById', data)
-export const deleteSeo = (data) => api.delete('/deleteSeo', { data })
+export const createProduct               = (data)             => api.post('/product/create', data)
+export const updateProduct               = (id, data)         => api.put(`/product/update/${id}`, data)
+export const deleteProduct               = (id)               => api.delete(`/product/delete/${id}`)
+export const searchProducts              = (query)            => api.get('/product/search', { params: { query } })
+export const getAllProducts               = ()                 => api.get('/product/all')
+export const getProductById              = (id)               => api.get(`/product/${id}`)
+export const getProductsByCategory       = (categoryId)       => api.get(`/products/category/${categoryId}`)
+export const getProductsByFilter         = (params)           => api.get('/products/filter', { params })
+export const getProductsBySubSubCategory = (subSubcategoryId) => api.get(`/products/sub-subcategory/${subSubcategoryId}`)
+export const getProducts                 = ()                 => api.get('/products')
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  🎯  BANNERS
+// ─────────────────────────────────────────────────────────────────────────────
+export const getBanners   = ()         => api.get('/banner')
+export const createBanner = (data)     => api.post('/banner/create', data)
+export const updateBanner = (id, data) => api.put(`/banner/update/${id}`, data)
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  🏷️  OFFERS
+// ─────────────────────────────────────────────────────────────────────────────
+export const getOffers   = ()         => api.get('/offer')
+export const createOffer = (data)     => api.post('/offer/create', data)
+export const updateOffer = (id, data) => api.put(`/offer/update/${id}`, data)
+export const deleteOffer = (id)       => api.delete(`/offer/delete/${id}`)
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  📂  CATEGORIES
+// ─────────────────────────────────────────────────────────────────────────────
+export const createCategory                 = (data)     => api.post('/category/create', data)
+export const updateCategory                 = (id, data) => api.put(`/category/update/${id}`, data)
+export const deleteCategory                 = (id)       => api.delete(`/category/delete/${id}`)
+export const getCategories                  = ()         => api.get('/category/all')
+export const getCategoryById                = (id)       => api.get(`/category/${id}`)
+export const getCategoriesWithSubcategories = ()         => api.get('/categories/with-subcategories')
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  📂  SUB-CATEGORIES
+// ─────────────────────────────────────────────────────────────────────────────
+export const createSubCategory  = (data)     => api.post('/subcategory/create', data)
+export const updateSubCategory  = (id, data) => api.put(`/subcategory/update/${id}`, data)
+export const deleteSubCategory  = (id)       => api.delete(`/subcategory/delete/${id}`)
+export const getSubCategories   = ()         => api.get('/subcategory/all')
+export const getSubCategoryById = (id)       => api.get(`/subcategory/${id}`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  📂  SUB-SUB-CATEGORIES
+//
+//  FIX — getSub_SubCategoryByCategoryId:
+//  The old frontend api.js passed categoryId in the URL correctly, but the backend
+//  controller was reading req.body.categoryId (always undefined on GET requests).
+//  The backend controller is now fixed to use req.params.categoryId.
+//  The route ordering in route.js is also fixed (/by-category/:categoryId now
+//  appears BEFORE /:id so Express doesn't swallow "by-category" as an id value).
+// ─────────────────────────────────────────────────────────────────────────────
+export const createSub_SubCategory          = (data)       => api.post('/sub-subcategory/create', data)
+export const updateSub_SubCategory          = (id, data)   => api.put(`/sub-subcategory/update/${id}`, data)
+export const deleteSub_SubCategory          = (id)         => api.delete(`/sub-subcategory/delete/${id}`)
+export const getSub_SubCategories           = ()           => api.get('/sub-subcategory/all')
+export const getSub_SubCategoryById         = (id)         => api.get(`/sub-subcategory/${id}`)
+// Correctly passes categoryId in the URL — backend is now fixed to read req.params
+export const getSub_SubCategoryByCategoryId = (categoryId) => api.get(`/sub-subcategory/by-category/${categoryId}`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  🛒  CART
+// ─────────────────────────────────────────────────────────────────────────────
+export const addToCart          = (data)   => api.post('/cart/add', data)
+export const getCart            = (userId) => api.get(`/cart/${userId}`)
+export const updateCartQuantity = (data)   => api.put('/cart/update', data)
+export const removeItemCart     = (data)   => api.delete('/cart/remove', { data })
+export const clearCart          = (userId) => api.delete(`/cart/clear/${userId}`)
+export const getAllCartData      = ()       => api.get('/cart/all/data')
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  💳  PAYMENT & ORDERS
+// ─────────────────────────────────────────────────────────────────────────────
+export const createPayment   = (data)   => api.post('/order/create', data)
+export const verifyPayment   = (data)   => api.post('/order/verify', data)
+export const getOrdersByUser = (userId) => api.get(`/order/user/${userId}`)
+export const getStats        = ()       => api.get('/order/stats')
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  🍳  KITCHEN / ORDER MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+export const getOrders         = ()           => api.get('/kitchen/orders')
+export const updateOrderStatus = (id, status) => api.put(`/kitchen/order/status/${id}`, { status })
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  🎟️  COUPONS — Normal Admin
+// ─────────────────────────────────────────────────────────────────────────────
+export const getCoupons      = ()     => api.get('/coupon/all')
+export const getCouponByCode = (code) => api.get(`/coupon/${code}`)
+export const applyCoupon     = (data) => api.post('/coupon/apply', data)
+export const createCoupon    = (data) => api.post('/coupon/create', data)
+export const deleteCoupon    = (id)   => api.delete(`/coupon/delete/${id}`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  🎟️  COUPONS — Special (SuperAdmin)
+// ─────────────────────────────────────────────────────────────────────────────
+export const validateSuperCoupon  = (code, orderAmount = 0) =>
+  api.post('/superadmin/coupons/validate', { code, orderAmount })
+export const recordSuperCouponUse = (data) =>
+  api.post('/superadmin/coupons/use', data)
+
+export const getUsedCoupons       = ()         => api.get('/superadmin/coupons/used')
+export const addUsedCoupon        = (data)     => api.post('/superadmin/coupons/used', data)
+export const updateUsedCoupon     = (id, data) => api.put(`/superadmin/coupons/used/${id}`, data)
+export const deleteUsedCoupon     = (id)       => api.delete(`/superadmin/coupons/used/${id}`)
+export const getSpecialCoupons    = (params)   => api.get('/superadmin/coupons', { params })
+export const getSpecialCouponById = (id)       => api.get(`/superadmin/coupons/${id}`)
+export const createSpecialCoupon  = (data)     => api.post('/superadmin/coupons', data)
+export const updateSpecialCoupon  = (id, data) => api.put(`/superadmin/coupons/${id}`, data)
+export const deleteSpecialCoupon  = (id)       => api.delete(`/superadmin/coupons/${id}`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  🏠  ADDRESS
+// ─────────────────────────────────────────────────────────────────────────────
+export const addAddress    = (data)     => api.post('/address/add', data)
+export const updateAddress = (id, data) => api.put(`/address/update/${id}`, data)
+export const getAddress    = (userId)   => api.get(`/address/${userId}`)
+export const getAllAddress  = ()        => api.get('/address/all/data')
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ⭐  REVIEWS
+// ─────────────────────────────────────────────────────────────────────────────
+export const addReview    = (data)      => api.post('/review/add', data)
+export const getReview    = (productId) => api.get(`/review/${productId}`)
+export const getAllReviews = ()          => api.get('/review/all/data')
+export const updateReview = (id, data)  => api.put(`/review/update/${id}`, data)
+export const deleteReview = (id)        => api.delete(`/review/delete/${id}`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  📩  ENQUIRY
+// ─────────────────────────────────────────────────────────────────────────────
+export const createEnquiry = (data) => api.post('/enquiry/create', data)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  🎉  FESTIVALS
+// ─────────────────────────────────────────────────────────────────────────────
+export const createFestival  = (data)     => api.post('/festival/create', data)
+export const updateFestival  = (id, data) => api.put(`/festival/update/${id}`, data)
+export const getFestivals    = ()         => api.get('/festival/all')
+export const getFestivalById = (id)       => api.get(`/festival/${id}`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  🖼️  LOGO
+// ─────────────────────────────────────────────────────────────────────────────
+export const createLogo = (data)     => api.post('/logo/create', data)
+export const getLogo    = ()         => api.get('/logo')
+export const updateLogo = (id, data) => api.put(`/logo/update/${id}`, data)
+export const deleteLogo = (id)       => api.delete(`/logo/delete/${id}`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  🔍  SEO
+// ─────────────────────────────────────────────────────────────────────────────
+export const createSeo  = (data)     => api.post('/seo/create', data)
+export const getAllSeo   = ()         => api.get('/seo/all')
+export const getSeoById = (id)       => api.get(`/seo/${id}`)
+export const updateSeo  = (id, data) => api.put(`/seo/update/${id}`, data)
+export const deleteSeo  = (id)       => api.delete(`/seo/delete/${id}`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  📍  PINCODES
+// ─────────────────────────────────────────────────────────────────────────────
+export const createPincode = (data)     => api.post('/pincode/create', data)
+export const getPincodes   = ()         => api.get('/pincode/all')
+export const updatePincode = (id, data) => api.put(`/pincode/update/${id}`, data)
+export const deletePincode = (id)       => api.delete(`/pincode/delete/${id}`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  🎠  SWIPERS
+// ─────────────────────────────────────────────────────────────────────────────
+export const createSwiper = (data) => api.post('/swiper/create', data)
+export const getSwipers   = ()     => api.get('/swiper/all')
+export const deleteSwiper = (id)   => api.delete(`/swiper/delete/${id}`)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ❤️  WISHLIST
+// ─────────────────────────────────────────────────────────────────────────────
+export const addWishlist    = (data)       => api.post('/wishlist/add', data)
+export const getWishlist    = (userId)     => api.get(`/wishlist/${userId}`)
+export const removeWishlist = (wishlistId) => api.delete(`/wishlist/remove/${wishlistId}`)
 
 export default api
-
-

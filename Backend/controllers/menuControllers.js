@@ -77,21 +77,33 @@ exports.createProduct = async (req, res) => {
       return `K${categoryInitial}${sizeCode}${colorCode}${random4Digit}`;
     };
 
-    // ✅ Assign SKUs
-    if (Array.isArray(variants)) {
-      variants.forEach((variant) => {
-        const color = variant.color;
-        if (Array.isArray(variant.sizes)) {
-          variant.sizes.forEach((size) => {
-            size.sku = generateSKU(size.size, color);
-          });
-        }
-      });
-    }
+    // Strip incomplete variants/sizes sent by the frontend as empty defaults.
+    // A variant is valid only if it has a non-empty color.
+    // A size is valid only if it has a non-empty size value and a price > 0.
+    const cleanVariants = Array.isArray(variants)
+      ? variants
+          .map((variant) => {
+            const cleanSizes = Array.isArray(variant.sizes)
+              ? variant.sizes.filter(
+                  (s) => s.size && s.size.trim() !== "" && Number(s.price) > 0
+                )
+              : [];
+            return { ...variant, sizes: cleanSizes };
+          })
+          .filter((v) => v.color && v.color.trim() !== "")
+      : [];
 
-    // ✅ Optional: Auto-calculate final price if not set
-    variants?.forEach((variant) => {
-      variant.sizes?.forEach((size) => {
+    // Assign SKUs
+    cleanVariants.forEach((variant) => {
+      const color = variant.color;
+      variant.sizes.forEach((size) => {
+        size.sku = generateSKU(size.size, color);
+      });
+    });
+
+    // Auto-calculate final price if not set
+    cleanVariants.forEach((variant) => {
+      variant.sizes.forEach((size) => {
         if (!size.finalPrice && size.price) {
           const discount = size.discountPercentage || 0;
           size.finalPrice = size.price - (size.price * discount) / 100;
@@ -99,17 +111,17 @@ exports.createProduct = async (req, res) => {
       });
     });
 
-    // ✅ Save product
+    // Save product
     const product = new Product({
       name,
       description,
       categoryId,
-      subcategoryId,
-      subsubcategoryId,
+      subcategoryId: subcategoryId || undefined,
+      subsubcategoryId: subsubcategoryId || undefined,
       brand,
       tags,
-      speciality,
-      variants,
+      speciality: speciality || "None",
+      variants: cleanVariants,
       images,
       slug,
       metaTitle,
@@ -405,24 +417,22 @@ exports.search = async (req, res) => {
 
 exports.getAllProducts = async (req, res) => {
   try {
-    const { subsubcategoryId } = req.body;
+    // FIX: was reading from req.body on a GET route — body is never sent for GET requests.
+    // Now reads from req.query so ?subsubcategoryId=xxx works, and omitting it returns all products.
+    const { subsubcategoryId } = req.query;
 
-    if (!subsubcategoryId) {
-      return res.status(400).json({
-        responseCode: 400,
-        message: "Subsubcategory ID is required.",
-      });
-    }
+    const query = { isDeleted: false };
+    if (subsubcategoryId) query.subsubcategoryId = subsubcategoryId;
 
-    const products = await Product.find({ subsubcategoryId })
-      .populate("categoryId", "name") // ✅ only populate `name`
-      .populate("subcategoryId", "name") // ✅ only populate `name`
-      .populate("subsubcategoryId", "name"); // ✅ only populate `name`
+    const products = await Product.find(query)
+      .populate("categoryId", "name")
+      .populate("subcategoryId", "name")
+      .populate("subsubcategoryId", "name");
 
     return res.status(200).json({
       responseCode: 200,
       message: "Products fetched successfully.",
-      data: products,
+      products,
     });
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -476,19 +486,23 @@ exports.createBanner = async (req, res) => {
   try {
     const { bannerImage } = req.body;
 
-    const banners = await Banner({
-      bannerImage,
-    });
-    await banners.save();
+    if (!bannerImage || !Array.isArray(bannerImage) || bannerImage.length === 0) {
+      return res.status(400).json({ responseCode: 400, message: "bannerImage array is required." });
+    }
 
-    res
-      .status(200)
-      .json({ responseCode: 200, message: "Banner Added Successfully" });
+    // Always push into the single banner document; create it if it doesn't exist yet
+    const doc = await Banner.findOne();
+    if (doc) {
+      doc.bannerImage.push(...bannerImage);
+      await doc.save();
+    } else {
+      await new Banner({ bannerImage }).save();
+    }
+
+    res.status(200).json({ responseCode: 200, message: "Banner Added Successfully" });
   } catch (error) {
-    console.error("Error fetching menu items:", error);
-    res
-      .status(500)
-      .json({ responseCode: 500, error: "Failed to fetch menu items" });
+    console.error("Error creating banner:", error);
+    res.status(500).json({ responseCode: 500, error: "Failed to create banner" });
   }
 };
 exports.updateLogo = async (req, res) => {
@@ -526,18 +540,20 @@ exports.getLogo = async (req, res) => {
 };
 exports.getBanner = async (req, res) => {
   try {
-    const banners = await Banner.findOne();
+    const doc = await Banner.findOne();
+
+    if (!doc) {
+      return res.status(200).json({ responseCode: 200, _id: null, banners: [] });
+    }
 
     res.status(200).json({
       responseCode: 200,
-      _id: banners._id,
-      banners: banners.bannerImage,
+      _id: doc._id,
+      banners: doc.bannerImage,
     });
   } catch (error) {
-    console.error("Error fetching menu items:", error);
-    res
-      .status(500)
-      .json({ responseCode: 500, error: "Failed to fetch menu items" });
+    console.error("Error fetching banners:", error);
+    res.status(500).json({ responseCode: 500, error: "Failed to fetch banners" });
   }
 };
 
@@ -565,6 +581,34 @@ exports.updateBanner = async (req, res) => {
     res
       .status(500)
       .json({ responseCode: 500, error: "Failed to fetch menu items" });
+  }
+};
+
+exports.deleteBanner = async (req, res) => {
+  try {
+    const { index } = req.params;
+    const idx = parseInt(index, 10);
+
+    if (isNaN(idx) || idx < 0) {
+      return res.status(400).json({ responseCode: 400, message: "Invalid banner index." });
+    }
+
+    const doc = await Banner.findOne();
+    if (!doc) {
+      return res.status(404).json({ responseCode: 404, message: "No banners found." });
+    }
+
+    if (idx >= doc.bannerImage.length) {
+      return res.status(404).json({ responseCode: 404, message: "Banner index out of range." });
+    }
+
+    doc.bannerImage.splice(idx, 1);
+    await doc.save();
+
+    res.status(200).json({ responseCode: 200, message: "Banner deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting banner:", error);
+    res.status(500).json({ responseCode: 500, error: "Failed to delete banner." });
   }
 };
 
@@ -661,7 +705,8 @@ exports.deleteOffer = async (req, res) => {
 };
 exports.getByProduct = async (req, res) => {
   try {
-    const { productId } = req.params;
+    // FIX: route is /product/:id so param key is "id", not "productId"
+    const productId = req.params.id || req.params.productId;
 
     if (!productId) {
       return res
@@ -699,7 +744,8 @@ exports.getByProduct = async (req, res) => {
 
 exports.getBycategory = async (req, res) => {
   try {
-    const { categoryId } = req.body; // Accepts categoryId and userId as query params
+    // FIX: route is GET /products/category/:categoryId — read from req.params, not req.body
+    const categoryId = req.params.categoryId || req.body.categoryId;
 
     if (!categoryId) {
       return res
@@ -708,7 +754,7 @@ exports.getBycategory = async (req, res) => {
     }
 
     // Fetch all menu items under the given category
-    const products = await Product.find({ categoryId });
+    const products = await Product.find({ categoryId, isDeleted: false });
 
     if (!products.length) {
       return res.status(200).json({
@@ -746,17 +792,31 @@ exports.updatedProduct = async (req, res) => {
       image,
     } = req.body;
 
+    // Strip empty/incomplete variants and sizes (same logic as createProduct)
+    const cleanVariants = Array.isArray(variants)
+      ? variants
+          .map((variant) => {
+            const cleanSizes = Array.isArray(variant.sizes)
+              ? variant.sizes.filter(
+                  (s) => s.size && s.size.trim() !== "" && Number(s.price) > 0
+                )
+              : [];
+            return { ...variant, sizes: cleanSizes };
+          })
+          .filter((v) => v.color && v.color.trim() !== "")
+      : [];
+
     const updatedProduct = await Product.findByIdAndUpdate(
       _id,
       {
         name,
         description,
         categoryId,
-        subcategoryId,
+        subcategoryId: subcategoryId || undefined,
         brand,
         tags,
-        speciality,
-        variants,
+        speciality: speciality || "None",
+        variants: cleanVariants,
         images,
         slug,
         metaTitle,
@@ -766,7 +826,7 @@ exports.updatedProduct = async (req, res) => {
         url,
         image,
       },
-      { new: true },
+      { new: true, runValidators: true },
     );
 
     if (!updatedProduct) {
@@ -791,7 +851,7 @@ exports.updatedProduct = async (req, res) => {
 // Delete Category Item
 exports.deleteProduct = async (req, res) => {
   try {
-    const { _id } = req.body;
+    const _id = req.params.id || req.body._id;
 
     const deletedCategory = await Product.findByIdAndDelete(_id);
 
@@ -812,40 +872,36 @@ exports.deleteProduct = async (req, res) => {
 
 exports.getProductsByCategorySubcategorySubsubcategory = async (req, res) => {
   try {
-    const { categoryId, subcategoryId, subsubcategoryId } = req.body;
+    // ✅ FIX: route is GET /products/filter — params come via query string, not body
+    const { categoryId, subcategoryId, subsubcategoryId } = req.query;
 
-    // Build the query based on provided parameters
     const query = {};
     if (categoryId) query.categoryId = categoryId;
     if (subcategoryId) query.subcategoryId = subcategoryId;
     if (subsubcategoryId) query.subsubcategoryId = subsubcategoryId;
 
-    // Fetch products based on the constructed query
     const products = await Product.find(query);
 
     res.status(200).json({ responseCode: 200, products });
   } catch (error) {
     console.error("Error fetching products:", error);
-    res
-      .status(500)
-      .json({ responseCode: 500, error: "Failed to fetch products" });
+    res.status(500).json({ responseCode: 500, error: "Failed to fetch products" });
   }
 };
 
 exports.getProductsBySubsubcategoryId = async (req, res) => {
   try {
-    const { subsubcategoryId } = req.body;
+    // ✅ FIX: route is GET /products/sub-subcategory/:subSubcategoryId
+    // read from req.params, not req.body
+    const subsubcategoryId = req.params.subSubcategoryId;
 
-    // Build the query based on provided parameters
-
-    // Fetch products based on the constructed query
     const products = await Product.find({ subsubcategoryId });
 
     res.status(200).json({ responseCode: 200, products });
   } catch (error) {
     console.error("Error fetching products:", error);
-    res
-      .status(500)
-      .json({ responseCode: 500, error: "Failed to fetch products" });
+    res.status(500).json({ responseCode: 500, error: "Failed to fetch products" });
   }
 };
+
+// Duplicate export removed — the correct getProductsBySubsubcategoryId using req.params is defined above.

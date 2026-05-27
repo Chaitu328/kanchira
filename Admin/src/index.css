@@ -78,6 +78,10 @@ body {
   background-color: var(--Gold-color);
   @apply text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 transition cursor-pointer border-0;
 }
+.btn-delete {
+  background-color: #8b0000;
+  @apply text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 transition cursor-pointer border-0;
+}
 .btn-icon {
   @apply p-1.5 rounded-lg transition cursor-pointer border-0 text-white;
 }

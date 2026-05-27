@@ -1,43 +1,35 @@
 const SubCategories = require('../models/subCategory');
 const SubSubCategories = require('../models/sub-subcategories');
+
 exports.createSub_SubCategory = async (req, res) => {
   try {
     const { name, image, slug, subCategoryId, categoryId } = req.body;
 
-    // Convert name to lowercase for case-insensitive comparison
     const nameLower = name.trim().toLowerCase();
-    const updatedCategory = await SubCategories.findOne(
-      { _id: subCategoryId },
-    );
+    const updatedCategory = await SubCategories.findOne({ _id: subCategoryId });
 
     if (!updatedCategory) {
       return res.status(200).json({ responseCode: 404, message: "SubCategory not found" });
     }
 
-    // Check if a category with the same name exists (case-insensitive)
     const existingCategory = await SubSubCategories.findOne({ name: new RegExp(`^${nameLower}$`, "i") });
-
     if (existingCategory) {
       return res.status(200).json({ responseCode: 400, message: "Sub-SubCategory already exists with the same name" });
     }
 
-    // Create a new category item
     const newCategory = new SubSubCategories({
-      name: nameLower, // Store name in lowercase
-      image: image || "", // Default to empty string if not provided
+      name: nameLower,
+      image: image || "",
       slug: slug,
       subCategoryId: subCategoryId,
-      categoryId: categoryId
+      categoryId: categoryId,
     });
 
-    // Save the new category to the database
     const savedCategory = await newCategory.save();
-
     return res.status(201).json({ responseCode: 200, message: "Sub-SubCategory created successfully", subCategory: savedCategory });
-
   } catch (error) {
     console.error("Error creating Sub-Subcategory item:", error);
-    return res.status(500).json({ responseCode: 500, message: "Failed to create  Sub-SubCategory item", error: error.message });
+    return res.status(500).json({ responseCode: 500, message: "Failed to create Sub-SubCategory item", error: error.message });
   }
 };
 
@@ -48,7 +40,7 @@ exports.updateSub_SubCategory = async (req, res) => {
     const updatedCategory = await SubSubCategories.findByIdAndUpdate(
       _id,
       { name, image, available, slug, subCategoryId },
-      { new: true } // Returns the updated document
+      { new: true }
     );
 
     if (!updatedCategory) {
@@ -62,10 +54,13 @@ exports.updateSub_SubCategory = async (req, res) => {
   }
 };
 
-// Delete Category Item
 exports.deleteSub_SubCategory = async (req, res) => {
   try {
-    const { _id } = req.body;
+    // FIX: DELETE /sub-subcategory/delete/:id — read id from req.params, not req.body
+    // The route is router.delete("/sub-subcategory/delete/:id", ...) so the id
+    // is in the URL, but the old code read req.body._id which is always undefined
+    // for a DELETE request from the frontend (which passes id in the URL only).
+    const _id = req.params.id || req.body._id;
 
     const deletedCategory = await SubSubCategories.findByIdAndDelete(_id);
 
@@ -80,54 +75,57 @@ exports.deleteSub_SubCategory = async (req, res) => {
   }
 };
 
+// GET /sub-subcategory/all → returns { subSubCategories: [...] }
 exports.getSub_SubCategories = async (req, res) => {
   try {
-    // Fetch all menu items from the database
     const categoriesItems = await SubSubCategories.find();
-
-    // Respond with the menu items
     res.status(200).json({ subSubCategories: categoriesItems });
   } catch (error) {
     console.error('Error fetching menu items:', error);
-
-    // Respond with a 500 error in case of failure
     res.status(500).json({ error: 'Failed to fetch menu items' });
   }
 };
+
+// GET /sub-subcategory/:id
+// FIX: Old code read subCategoryId from req.body — impossible on a GET request.
+// This route is matched by id in req.params. Since the frontend passes a
+// subCategoryId to filter by, we support both: filter by subCategoryId query
+// param OR return the single document by _id.
 exports.getSub_SubCategory = async (req, res) => {
-  const { subCategoryId } = req.body;
   try {
-    // Fetch all menu items from the database
-    const categoriesItems = await SubSubCategories.find({ subCategoryId });
-    // Respond with the menu items
-    res.status(200).json({ sub_SubCategories: categoriesItems, message: "Sub-SubCategory Item Retrived Succesfully" });
+    // Support ?subCategoryId=xxx as a query param (used by frontend dropdowns)
+    const subCategoryId = req.query.subCategoryId;
+    if (subCategoryId) {
+      const categoriesItems = await SubSubCategories.find({ subCategoryId });
+      return res.status(200).json({ sub_SubCategories: categoriesItems, message: "Sub-SubCategory Items Retrieved Successfully" });
+    }
+    // Otherwise treat :id as the document _id
+    const item = await SubSubCategories.findById(req.params.id);
+    if (!item) {
+      return res.status(404).json({ responseCode: 404, message: "Sub-SubCategory not found" });
+    }
+    res.status(200).json({ sub_SubCategory: item });
   } catch (error) {
-    console.error('Error fetching menu items:', error);
-
-    // Respond with a 500 error in case of failure
-    res.status(500).json({ error: 'Failed to fetch menu items' });
+    console.error('Error fetching sub-subcategory:', error);
+    res.status(500).json({ error: 'Failed to fetch sub-subcategory' });
   }
 };
 
-// controllers/subCategoryController.js
-
+// GET /sub-subcategory/by-category/:categoryId
+// FIX: Old code read categoryId from req.body — impossible on a GET request.
+// It must come from req.params since the route is /by-category/:categoryId.
 exports.getSubSubcategoriesByCategory = async (req, res) => {
   try {
-    const { categoryId } = req.body;
+    // ✅ FIX: route is GET /sub-subcategory/by-category/:categoryId
+    // so read from req.params, not req.body (GET has no body)
+    // Also query by subCategoryId — that's what the frontend passes
+    const subCategoryId = req.params.categoryId;
 
-    const subcategories = await SubSubCategories.find({ categoryId });
+    const subcategories = await SubSubCategories.find({ subCategoryId });
 
-    const formatted = subcategories.map((sub) => ({
-      title: sub.name,
-      _id: sub._id,
-      image: sub.image,
-    }));
-
-    res.status(200).json(formatted);
+    res.status(200).json({ sub_SubCategories: subcategories });
   } catch (err) {
     console.error('Error fetching subcategories:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
-
-

@@ -1,0 +1,384 @@
+{
+  "info": {
+    "name": "Super Admin API Collection",
+    "_postman_id": "superadmin-api-2026",
+    "description": "Complete Super Admin Authentication + Special Coupon API\n\nBase URL: http://localhost:3007\n\n## Flow:\n1. Register Super Admin\n2. Login → copy accessToken\n3. Set Bearer token in Authorization header\n4. Use protected routes",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3007", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "couponId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Register Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/superadmin/auth/register", "host": ["{{baseUrl}}"], "path": ["superadmin", "auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Super Admin\",\n  \"email\": \"superadmin@example.com\",\n  \"password\": \"SecurePass@123\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Super Admin registered successfully\",\n  \"data\": {\n    \"id\": \"665f1a2b3c4d5e6f7a8b9c0d\",\n    \"name\": \"Super Admin\",\n    \"email\": \"superadmin@example.com\",\n    \"role\": \"superadmin\"\n  }\n}"
+            },
+            {
+              "name": "Error - Email exists 409",
+              "status": "Conflict",
+              "code": 409,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Super Admin with this email already exists\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success) {",
+                  "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/superadmin/auth/login", "host": ["{{baseUrl}}"], "path": ["superadmin", "auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@example.com\",\n  \"password\": \"SecurePass@123\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"superAdmin\": {\n      \"id\": \"665f1a2b3c4d5e6f7a8b9c0d\",\n      \"name\": \"Super Admin\",\n      \"email\": \"superadmin@example.com\",\n      \"role\": \"superadmin\"\n    }\n  }\n}"
+            },
+            {
+              "name": "Error - Invalid credentials 401",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid email or password\"\n}"
+            },
+            {
+              "name": "Error - Rate limited 429",
+              "status": "Too Many Requests",
+              "code": 429,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Too many login attempts. Please try again in 15 minutes.\",\n  \"retryAfter\": \"847 seconds\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/superadmin/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["superadmin", "auth", "refresh-token"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Token refreshed successfully\",\n  \"data\": {\n    \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/superadmin/auth/me", "host": ["{{baseUrl}}"], "path": ["superadmin", "auth", "me"] }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Profile fetched successfully\",\n  \"data\": {\n    \"id\": \"665f1a2b3c4d5e6f7a8b9c0d\",\n    \"name\": \"Super Admin\",\n    \"email\": \"superadmin@example.com\",\n    \"role\": \"superadmin\",\n    \"createdAt\": \"2026-05-07T10:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/superadmin/auth/logout", "host": ["{{baseUrl}}"], "path": ["superadmin", "auth", "logout"] }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Logged out successfully\",\n  \"data\": {}\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔑 Forgot Password Flow",
+      "item": [
+        {
+          "name": "Step 1 - Forgot Password (Send OTP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/superadmin/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["superadmin", "auth", "forgot-password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@example.com\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"OTP sent successfully to your registered email\",\n  \"data\": {}\n}"
+            },
+            {
+              "name": "Error - Email not found 404",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"No Super Admin account found with this email\"\n}"
+            },
+            {
+              "name": "Error - Rate limited 429",
+              "status": "Too Many Requests",
+              "code": 429,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Too many password reset requests. Please try again in 10 minutes.\",\n  \"retryAfter\": \"524 seconds\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Step 2 - Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/superadmin/auth/verify-otp", "host": ["{{baseUrl}}"], "path": ["superadmin", "auth", "verify-otp"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@example.com\",\n  \"otp\": \"847291\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"OTP verified successfully. You may now reset your password.\",\n  \"data\": {}\n}"
+            },
+            {
+              "name": "Error - Wrong OTP 400",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid OTP. 3 attempt(s) remaining.\"\n}"
+            },
+            {
+              "name": "Error - OTP Expired 400",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"OTP expired or not found. Please request a new one.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Step 3 - Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/superadmin/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["superadmin", "auth", "reset-password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@example.com\",\n  \"newPassword\": \"NewSecurePass@456\",\n  \"confirmPassword\": \"NewSecurePass@456\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Password reset successfully. Please login with your new password.\",\n  \"data\": {}\n}"
+            },
+            {
+              "name": "Error - OTP not verified 400",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"message\": \"OTP not verified. Please complete OTP verification first.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🎟️ Special Coupons (Super Admin Only)",
+      "item": [
+        {
+          "name": "Create Special Coupon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success) {",
+                  "  pm.collectionVariables.set('couponId', json.data.coupon._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/superadmin/coupons", "host": ["{{baseUrl}}"], "path": ["superadmin", "coupons"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SUPER50\",\n  \"description\": \"Exclusive 50% off for super admin event\",\n  \"discountType\": \"percentage\",\n  \"discountValue\": 50,\n  \"minOrderAmount\": 200,\n  \"maxDiscountAmount\": 500,\n  \"usageLimit\": 100,\n  \"expiryDate\": \"2026-12-31T23:59:59.000Z\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "Success 201",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Special coupon created successfully\",\n  \"data\": {\n    \"coupon\": {\n      \"_id\": \"665f1a2b3c4d5e6f7a8b9c0e\",\n      \"code\": \"SUPER50\",\n      \"description\": \"Exclusive 50% off for super admin event\",\n      \"discountType\": \"percentage\",\n      \"discountValue\": 50,\n      \"minOrderAmount\": 200,\n      \"maxDiscountAmount\": 500,\n      \"usageLimit\": 100,\n      \"usedCount\": 0,\n      \"isActive\": true,\n      \"expiryDate\": \"2026-12-31T23:59:59.000Z\",\n      \"createdBy\": \"665f1a2b3c4d5e6f7a8b9c0d\",\n      \"createdAt\": \"2026-05-07T10:05:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "Error - Admin (not superadmin) 403",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Access denied: Super Admin only\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Special Coupons",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/superadmin/coupons?page=1&limit=10&isActive=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["superadmin", "coupons"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "isActive", "value": "true" },
+                { "key": "search", "value": "SUPER", "disabled": true }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Special coupons fetched successfully\",\n  \"data\": {\n    \"coupons\": [\n      {\n        \"_id\": \"665f1a2b3c4d5e6f7a8b9c0e\",\n        \"code\": \"SUPER50\",\n        \"description\": \"Exclusive 50% off\",\n        \"discountType\": \"percentage\",\n        \"discountValue\": 50,\n        \"isActive\": true,\n        \"expiryDate\": \"2026-12-31T23:59:59.000Z\",\n        \"usedCount\": 0,\n        \"createdBy\": { \"name\": \"Super Admin\", \"email\": \"superadmin@example.com\" }\n      }\n    ],\n    \"pagination\": {\n      \"total\": 1,\n      \"page\": 1,\n      \"limit\": 10,\n      \"totalPages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Coupon By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/superadmin/coupons/{{couponId}}", "host": ["{{baseUrl}}"], "path": ["superadmin", "coupons", "{{couponId}}"] }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Coupon fetched successfully\",\n  \"data\": {\n    \"coupon\": {\n      \"_id\": \"665f1a2b3c4d5e6f7a8b9c0e\",\n      \"code\": \"SUPER50\",\n      \"discountType\": \"percentage\",\n      \"discountValue\": 50\n    }\n  }\n}"
+            },
+            {
+              "name": "Error - Not Found 404",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"message\": \"Special coupon not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Special Coupon",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/superadmin/coupons/{{couponId}}", "host": ["{{baseUrl}}"], "path": ["superadmin", "coupons", "{{couponId}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated: Exclusive 50% off for VIP event\",\n  \"discountValue\": 60,\n  \"usageLimit\": 200,\n  \"isActive\": true,\n  \"expiryDate\": \"2027-06-30T23:59:59.000Z\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Special coupon updated successfully\",\n  \"data\": {\n    \"coupon\": {\n      \"_id\": \"665f1a2b3c4d5e6f7a8b9c0e\",\n      \"code\": \"SUPER50\",\n      \"discountValue\": 60,\n      \"updatedBy\": { \"name\": \"Super Admin\", \"email\": \"superadmin@example.com\" }\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Special Coupon",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/superadmin/coupons/{{couponId}}", "host": ["{{baseUrl}}"], "path": ["superadmin", "coupons", "{{couponId}}"] }
+          },
+          "response": [
+            {
+              "name": "Success 200",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Special coupon deleted successfully\",\n  \"data\": {}\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
