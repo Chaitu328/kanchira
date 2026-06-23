@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
-import { AllCategories, AllCategoriesWithSubSubCategories, AllSubCategoriesParam } from '../../services/home';
+import { AllCategories, AllCategoriesWithSubSubCategories, AllSubCategoriesParam, getBanners } from '../../services/home';
 import { fetchCartFromBackend } from '../../redux/slices/cart';
 import { useSelector } from 'react-redux';
 import LoadCart from '../../services/cartLoad';
@@ -43,7 +43,7 @@ const cy = 150;
 // Convert polar coordinates to cartesian
 const size = width * 0.8;
 const radius = size / 2;
-const segmentCount = 8;
+const segmentCount = 9;
 
 
 // Create path for each triangle segment
@@ -72,26 +72,24 @@ const describeArc = (x, y, radius, startAngle, endAngle) => {
 };
 
 
-// Offers with gradient colors
+// Offers with alternating gold-ish colors matching Frontend
 const offers = [
-  { id: 1, label: '5%', number: '5', color: ['#fdc43f', '#fcefb4'] },
-  { id: 2, label: '10%', number: '10', color: ['#fdc43f', '#fcefb4'] },
-  { id: 3, label: '15%', number: '15', color: ['#fdc43f', '#fcefb4'] },
-  { id: 4, label: '20%', number: '20', color: ['#fdc43f', '#fcefb4'] },
-  { id: 5, label: '25%', number: '25', color: ['#fdc43f', '#fcefb4'] },
-  { id: 6, label: '30%', number: '30', color: ['#fdc43f', '#fcefb4'] },
-    { id: 7, label: '35%', number: '35', color: ['#fdc43f', '#fcefb4'] },
-
-      { id: 8, label: '40%', number: '40', color: ['#fdc43f', '#fcefb4'] },
-
+  { id: 1, label: '40%', number: '40', color: ['#FFF8C6', '#FFF8C6'] },
+  { id: 2, label: '45%', number: '45', color: ['#FFE47A', '#FFE47A'] },
+  { id: 3, label: '50%', number: '50', color: ['#FFF8C6', '#FFF8C6'] },
+  { id: 4, label: '10%', number: '10', color: ['#FFE47A', '#FFE47A'] },
+  { id: 5, label: '15%', number: '15', color: ['#FFF8C6', '#FFF8C6'] },
+  { id: 6, label: '20%', number: '20', color: ['#FFE47A', '#FFE47A'] },
+  { id: 7, label: '25%', number: '25', color: ['#FFF8C6', '#FFF8C6'] },
+  { id: 8, label: '30%', number: '30', color: ['#FFE47A', '#FFE47A'] },
+  { id: 9, label: '35%', number: '35', color: ['#FFF8C6', '#FFF8C6'] },
 ];
-const AnimatedView = Animated.createAnimatedComponent(View);
-// Wheel component using SVG
-const GradientWheel = ({ spinTransform }) => {
-  return (
-    <AnimatedView style={{ transform: [{ rotate: spinTransform }] }}>
 
-        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: [{ rotate: spinTransform }] }}>
+// Wheel component using SVG
+const GradientWheel = () => {
+  return (
+    <View>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Defs>
           {offers.map((segment, index) => (
             <LinearGradient key={index} id={`grad${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -117,12 +115,12 @@ const GradientWheel = ({ spinTransform }) => {
               <SvgText
                 x={x}
                 y={y}
-                fill="#681117"
-                fontSize="16"
+                fill="#CC0000"
+                fontSize="14"
                 fontWeight="bold"
                 textAnchor="middle"
                 alignmentBaseline="middle"
-                transform={`rotate(${midAngle}, ${x}, ${y})`}
+                transform={`rotate(${midAngle + 90}, ${x}, ${y})`}
               >
                 {segment.label}
               </SvgText>
@@ -130,8 +128,7 @@ const GradientWheel = ({ spinTransform }) => {
           );
         })}
       </Svg>
-      </AnimatedView>
-
+    </View>
   );
 };
 
@@ -170,12 +167,13 @@ console.log(wishCount,"count")
   ];
     const [subsubCategories, setSubSubCategories] = useState(categoriescategories);
 
-  const banners = [
+  const FALLBACK_BANNERS = [
     { id: '1', image: 'https://th.bing.com/th/id/OIP.Ge6jqSIlvgRds9iarmzJCAHaEK?r=0&rs=1&pid=ImgDetMain' },
     { id: '2', image: 'https://mir-s3-cdn-cf.behance.net/project_modules/max_1200_webp/0bd04a181510145.651d49911a794.jpg' },
     { id: '3', image: 'https://th.bing.com/th/id/OIP.Ge6jqSIlvgRds9iarmzJCAHaEK?r=0&rs=1&pid=ImgDetMain' },
     { id: '4', image: 'https://th.bing.com/th/id/OIP.-l5u-_qT6Po4FfSpnpkSlAHaHa?r=0&rs=1&pid=ImgDetMain' },
   ];
+  const [banners, setBanners] = useState(FALLBACK_BANNERS);
  const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
   // Define your offers with percentages (must add up to 100)
@@ -183,7 +181,7 @@ const spinValue = useRef(new Animated.Value(0)).current;
 
 const spinTransform = spinValue.interpolate({
   inputRange: [0, 1],
-  outputRange: ['0deg', '360deg'], // This can scale to multiple turns
+  outputRange: ['0deg', '360deg'],
 });
 
 const spinWheel = () => {
@@ -192,20 +190,25 @@ const spinWheel = () => {
   setSpinning(true);
   setResult(null);
 
-  const selectedIndex = Math.floor(Math.random() * offers.length);
-  const selectedOffer = offers[selectedIndex];
+  // Award lower values (10-25%) more often, matching Frontend logic
+  const allowed = [10, 15, 20, 25];
+  const pool = offers
+    .map((s, i) => (allowed.includes(parseFloat(s.number)) ? i : null))
+    .filter((i) => i !== null);
+  const winIdx = pool[Math.floor(Math.random() * pool.length)];
+  const selectedOffer = offers[winIdx];
 
   const segmentAngle = 360 / offers.length;
+  const rotations = 7; // 7 full spins
 
-  const rotations = 5; // full spins
-  const endAngle =
-    rotations * 360 +
-    (360 - (selectedIndex * segmentAngle + segmentAngle / 2));
+  // Compute end angle in turns
+  const endAngleDeg = rotations * 360 + (360 - (winIdx * segmentAngle + segmentAngle / 2));
+  const endValue = endAngleDeg / 360;
 
   spinValue.setValue(0);
 
   Animated.timing(spinValue, {
-    toValue: endAngle,
+    toValue: endValue,
     duration: 5000,
     easing: Easing.out(Easing.ease),
     useNativeDriver: true,
@@ -218,7 +221,7 @@ const spinWheel = () => {
 const claimNow = async () => {
   if (!result) return;
   try {
-    const wonPercentage = parseFloat(result.number || result.label) || 0;
+    const wonPercentage = parseFloat(result.number) || 0;
     const spinDiscountObj = {
       value: wonPercentage,
       label: `${wonPercentage}% OFF`,
@@ -226,10 +229,21 @@ const claimNow = async () => {
     };
     await AsyncStorage.setItem("checkout_spin_discount", JSON.stringify(spinDiscountObj));
     await AsyncStorage.setItem("discountSpinTime", Date.now().toString());
-    console.log("Spin discount claimed successfully:", spinDiscountObj);
-    setShowSpinWheel(false);
+    console.log("Spin discount claimed successfully on mobile:", spinDiscountObj);
+    setVisible(false);
   } catch (error) {
-    console.error("Error claiming spin discount:", error);
+    console.error("Error claiming spin discount on mobile:", error);
+    setVisible(false);
+  }
+};
+
+const handleClose = async () => {
+  try {
+    await AsyncStorage.setItem("discountSpinTime", Date.now().toString());
+    setVisible(false);
+  } catch (error) {
+    console.error("Error setting spin cooldown:", error);
+    setVisible(false);
   }
 };
 
@@ -256,7 +270,11 @@ console.log(result)
     try {
       const data = await AllCategories({ categoryId: '' });
       if (data?.length) {
-        setCategories(data);
+        const order = ['men', 'women', 'girls', 'boys'];
+        const filteredSorted = data
+          .filter((cat) => cat.name && order.includes(cat.name.toLowerCase()))
+          .sort((a, b) => order.indexOf(a.name.toLowerCase()) - order.indexOf(b.name.toLowerCase()));
+        setCategories(filteredSorted);
         setActiveCategory({ _id: "all", name: "All" }); // Use consistent structure
       }
     } catch (err) {
@@ -297,14 +315,59 @@ console.log(result)
       setLoading(false);
     }
   };
+  const fetchBanners = async () => {
+    try {
+      const data = await getBanners();
+      const apiBanners = data?.banners || data || [];
+      if (apiBanners.length > 0) {
+        setBanners(apiBanners);
+      }
+    } catch (err) {
+      console.error('Error fetching banners:', err);
+    }
+  };
 
-  useEffect(() => { fetchCategories(); fetchSubCategories();fetchSubSubCategories() }, []);
+  useEffect(() => { fetchCategories(); fetchSubCategories(); fetchSubSubCategories(); fetchBanners(); }, []);
+
+  useEffect(() => {
+    if (banners.length < 2) return;
+    const interval = setInterval(() => {
+      const nextIndex = (activeIndex + 1) % banners.length;
+      try {
+        flatListRef.current?.scrollToIndex({
+          index: nextIndex,
+          animated: true,
+        });
+      } catch (e) {
+        // Safe catch for potential React Native scrollIndex out of bounds
+      }
+      setActiveIndex(nextIndex);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [activeIndex, banners.length]);
 
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [pincode, setPincode] = useState('534145');
   const [inputPincode, setInputPincode] = useState('534145');
-const [visible,setVisible]=useState(true)
-const [visibled,setVisibled]=useState(true)
+  const [visible, setVisible] = useState(false);
+  const [visibled, setVisibled] = useState(true);
+
+  useEffect(() => {
+    const checkSpinWheel = async () => {
+      try {
+        const lastShown = await AsyncStorage.getItem("discountSpinTime");
+        const lastShownNum = Number(lastShown);
+        const sixHours = 6 * 60 * 60 * 1000;
+        const shouldShow =
+          !lastShown || isNaN(lastShownNum) || Date.now() - lastShownNum > sixHours;
+        setVisible(shouldShow);
+      } catch (error) {
+        console.error("Error checking spin wheel cooldown:", error);
+        setVisible(true);
+      }
+    };
+    checkSpinWheel();
+  }, []);
 
   const openLocationModal = () => {
     setLocationModalVisible(true);
@@ -406,11 +469,7 @@ const [visibled,setVisibled]=useState(true)
       </View>
     );
   };
-  const claimNow= async()=>{
-  await AsyncStorage.setItem("number", String(result.number)); // Store safely
-    setVisible(false)
-    console.log(result.number)
-  }
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -543,7 +602,7 @@ const [visibled,setVisibled]=useState(true)
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => item._id || item.id || String(index)}
             onScroll={handleScroll}
             renderItem={({ item }) => (
               <View style={styles.bannerContainer}>
@@ -653,7 +712,7 @@ const [visibled,setVisibled]=useState(true)
  <Modal visible={visible} transparent animationType="fade">
         <View style={styles.spinWheelModalContainer}>
           <View style={styles.spinWheelModalContent}>
-             <TouchableOpacity style={styles.cancelButton} onPress={()=>setVisible(false)}>
+             <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
         <Text style={styles.cancelButtonText}>✕</Text>
       </TouchableOpacity>
             <Text style={styles.spinWheelTitle}>Exclusive Offers!</Text>
@@ -661,7 +720,7 @@ const [visibled,setVisibled]=useState(true)
 
             <View style={styles.spinWheelOuterContainer}>
               <Animated.View style={{ transform: [{ rotate: spinTransform }] }}>
-                <GradientWheel spinTransform="0deg" />
+                <GradientWheel />
               </Animated.View>
 
               <View style={styles.spinWheelCenterCircle}>

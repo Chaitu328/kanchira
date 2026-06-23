@@ -264,3 +264,13 @@ export const verifyPayment = async (payload) => {
     throw error;
   }
 };
+
+export const getBanners = async () => {
+  try {
+    const response = await api.get('/banner');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching banners:', error);
+    throw error;
+  }
+};

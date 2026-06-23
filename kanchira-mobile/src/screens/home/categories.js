@@ -2,7 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, Dimensions, Animated } from 'react-native';
 
-import { AllCategories } from '../../services/home';
+import { AllCategoriesWithSubCategories } from '../../services/home';
 import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
 import BannerSlider from './banner';
 import ProductCard from './Dashboard';
@@ -17,26 +17,33 @@ const CategoryList = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [scrollY] = useState(new Animated.Value(0));
-const [prevScrollY, setPrevScrollY] = useState(0);
-const [isTabVisible, setIsTabVisible] = useState(true);
+  const [prevScrollY, setPrevScrollY] = useState(0);
+  const [isTabVisible, setIsTabVisible] = useState(true);
 
-const tabTranslateY = scrollY.interpolate({
-  inputRange: [0, 100],
-  outputRange: [0, -100], // Hide height
-  extrapolate: 'clamp',
-});
+  const tabTranslateY = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, -100], // Hide height
+    extrapolate: 'clamp',
+  });
 
 
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const data = await AllCategories({ categoryId: '' });
+      const data = await AllCategoriesWithSubCategories();
       if (data?.length) {
-        setCategories(data);
-        setActiveCategory(data[0]);
+        // Filter and sort by sequence ['men', 'women', 'girls', 'boys'] matching Frontend
+        const order = ['men', 'women', 'girls', 'boys'];
+        const filteredSorted = data
+          .filter((cat) => cat.title && order.includes(cat.title.toLowerCase()))
+          .sort((a, b) => order.indexOf(a.title.toLowerCase()) - order.indexOf(b.title.toLowerCase()));
+        setCategories(filteredSorted);
+        if (filteredSorted.length > 0) {
+          setActiveCategory(filteredSorted[0]);
+        }
       }
     } catch (err) {
-      console.error('Error fetching categories:', err);
+      console.error('Error fetching categories with subcategories:', err);
     } finally {
       setLoading(false);
     }
@@ -116,6 +123,8 @@ const tabTranslateY = scrollY.interpolate({
                 style={styles.subcategoryItem}
                 onPress={() =>
                   navigation.navigate('CategoryProducts', {
+                    subcategoryId: item.id,
+                    subcategoryName: item.title,
                   })
                 }
               >
