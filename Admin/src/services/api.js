@@ -148,11 +148,21 @@ export const deleteSeo = (id) => api.delete(`api/seo/delete/${id}`);
 
 // ── PINCODE ──────────────────────────────────────────────────────
 export const getPincodes = () => api.get("api/pincode/all");
+export const searchPincodes = (q) =>
+  api.get("api/pincode/search", { params: { q } });
 export const createPincode = (data) => api.post("api/pincode/create", data);
 export const updatePincode = (id, data) =>
   api.put(`api/pincode/update/${id}`, data);
 // FIX: was api.delete("deletePincode", { data: { id } }) — wrong URL format
 export const deletePincode = (id) => api.delete(`api/pincode/delete/${id}`);
+export const bulkUploadPincodes = (formData) =>
+  api.post("api/pincode/bulk-upload", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const exportPincodes = () =>
+  api.get("api/pincode/export", { responseType: "blob" });
+export const downloadPincodeSampleTemplate = () =>
+  api.get("api/pincode/sample-template", { responseType: "blob" });
 
 // ── SWIPERS ──────────────────────────────────────────────────────
 export const getSwipers = () => api.get("api/swiper/all");

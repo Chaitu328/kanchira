@@ -376,12 +376,22 @@ export const superAdminDeleteLogo = (id) =>
 
 // ── Pincode (/api/pincode) ────────────────────────────────────────
 export const superAdminGetPincodes = () => saApi.get("api/pincode/all");
+export const superAdminSearchPincodes = (q) =>
+  saApi.get("api/pincode/search", { params: { q } });
 export const superAdminCreatePincode = (data) =>
   saApi.post("api/pincode/create", data);
 export const superAdminUpdatePincode = (id, data) =>
   saApi.put(`api/pincode/update/${id}`, data);
 export const superAdminDeletePincode = (id) =>
   saApi.delete(`api/pincode/delete/${id}`);
+export const superAdminBulkUploadPincodes = (formData) =>
+  saApi.post("api/pincode/bulk-upload", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const superAdminExportPincodes = () =>
+  saApi.get("api/pincode/export", { responseType: "blob" });
+export const superAdminDownloadPincodeSampleTemplate = () =>
+  saApi.get("api/pincode/sample-template", { responseType: "blob" });
 
 // ── SEO (/api/seo) ────────────────────────────────────────────────
 export const superAdminGetAllSeo = () => saApi.get("api/seo/all");

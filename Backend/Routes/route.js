@@ -79,6 +79,7 @@ const { CreateSeo, GetSeo, GetSeoById, UpdateSeo, DeleteSeo } = require("../cont
 
 const {
   createPinCode, getPincode, updatePinCode, deletePinCode,
+  searchPinCode, bulkUploadPinCodes, exportPinCodes, downloadSamplePinCodeFile,
 } = require("../controllers/pinController");
 
 const { getSwipers, createSwiper, deleteSwiper } = require("../controllers/swiperController");
@@ -222,6 +223,10 @@ router.delete("/seo/delete/:id", verifyToken, isAdminOrSuperAdmin, DeleteSeo);
 // ─── Pincode ──────────────────────────────────────────────────────────────────
 router.post("/pincode/create", verifyToken, isAdminOrSuperAdmin, createPinCode);
 router.get("/pincode/all", getPincode);
+router.get("/pincode/search", verifyToken, isAdminOrSuperAdmin, searchPinCode);
+router.get("/pincode/export", verifyToken, isAdminOrSuperAdmin, exportPinCodes);
+router.get("/pincode/sample-template", verifyToken, isAdminOrSuperAdmin, downloadSamplePinCodeFile);
+router.post("/pincode/bulk-upload", verifyToken, isAdminOrSuperAdmin, upload.single("file"), bulkUploadPinCodes);
 router.put("/pincode/update/:id", verifyToken, isAdminOrSuperAdmin, updatePinCode);
 router.delete("/pincode/delete/:id", verifyToken, isAdminOrSuperAdmin, deletePinCode);
 

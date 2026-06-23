@@ -2198,8 +2198,12 @@ import {
   updateLogo,
   deleteLogo,
   getPincodes,
+  searchPincodes,
   createPincode,
   deletePincode,
+  bulkUploadPincodes,
+  exportPincodes,
+  downloadPincodeSampleTemplate,
   getCoupons,
   createCoupon,
   deleteCoupon,
@@ -3860,12 +3864,24 @@ export function Pincode() {
   const [form, setForm] = useState({ pincode: "", available: true });
   const [saving, setSaving] = useState(false);
 
+  // ── Bulk upload state ──────────────────────────────────────────
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadSummary, setUploadSummary] = useState(null);
+  const fileInputRef = React.useRef(null);
+
+  // ── Search state ────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searching, setSearching] = useState(false);
+
   const load = async () => {
     setLoading(true);
     try {
       const r = await getPincodes();
       setData(Array.isArray(r.data?.pincodes) ? r.data.pincodes : []);
     } catch {
+      toast.error("Failed to load pincodes.");
     } finally {
       setLoading(false);
     }
@@ -3875,10 +3891,35 @@ export function Pincode() {
     load();
   }, []);
 
+  // Debounced server-side search; falls back to full list when cleared
+  useEffect(() => {
+    const term = searchTerm.trim();
+    if (term === "") {
+      load();
+      return;
+    }
+    setSearching(true);
+    const handle = setTimeout(async () => {
+      try {
+        const r = await searchPincodes(term);
+        setData(Array.isArray(r.data?.pincodes) ? r.data.pincodes : []);
+      } catch {
+        toast.error("Search failed.");
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [searchTerm]);
+
   const handleCreate = async (ev) => {
     ev.preventDefault();
     if (!form.pincode) {
       toast.error("Pincode is required");
+      return;
+    }
+    if (!/^[1-9][0-9]{5}$/.test(String(form.pincode).trim())) {
+      toast.error("Pincode must be a valid 6-digit code");
       return;
     }
     setSaving(true);
@@ -3888,8 +3929,8 @@ export function Pincode() {
       setShowCreate(false);
       setForm({ pincode: "", available: true });
       load();
-    } catch {
-      toast.error("Failed.");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed.");
     } finally {
       setSaving(false);
     }
@@ -3904,6 +3945,76 @@ export function Pincode() {
       toast.error("Delete failed.");
     } finally {
       setDeleteId(null);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const validExt = /\.(xlsx|xls)$/i.test(file.name);
+    if (!validExt) {
+      toast.error("Please select a valid Excel file (.xlsx or .xls)");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    setUploadFile(file);
+    setUploadSummary(null);
+  };
+
+  const handleBulkUpload = async () => {
+    if (!uploadFile) {
+      toast.error("Please choose an Excel file first");
+      return;
+    }
+    setUploading(true);
+    setUploadSummary(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", uploadFile);
+      const r = await bulkUploadPincodes(fd);
+      setUploadSummary(r.data);
+      toast.success(
+        `Upload complete: ${r.data?.summary?.success || 0} added, ${
+          r.data?.summary?.failed || 0
+        } failed, ${r.data?.summary?.duplicate || 0} duplicate`
+      );
+      setUploadFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Bulk upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const downloadBlob = (blobData, filename) => {
+    const url = window.URL.createObjectURL(new Blob([blobData]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadSample = async () => {
+    try {
+      const r = await downloadPincodeSampleTemplate();
+      downloadBlob(r.data, "pincode-sample-template.xlsx");
+    } catch {
+      toast.error("Could not download sample template.");
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const r = await exportPincodes();
+      downloadBlob(r.data, "pincodes-export.xlsx");
+      toast.success("Pincodes exported!");
+    } catch {
+      toast.error("Export failed.");
     }
   };
 
@@ -3924,10 +4035,35 @@ export function Pincode() {
   return (
     <div>
       <PageHeader
-        title="Delivery Pincodes"
+        title="Pincode Management"
         buttonLabel={showCreate ? "Cancel" : "Add Pincode"}
-        onButtonClick={() => setShowCreate((s) => !s)}
+        onButtonClick={() => {
+          setShowCreate((s) => !s);
+          setShowUpload(false);
+        }}
       />
+
+      {/* ── Action bar ──────────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        <button
+          className="btn-secondary"
+          onClick={() => {
+            setShowUpload((s) => !s);
+            setShowCreate(false);
+          }}
+        >
+          <i className="fa fa-file-excel mr-2" />
+          {showUpload ? "Close Bulk Upload" : "Bulk Upload (Excel)"}
+        </button>
+        <button className="btn-secondary" onClick={handleDownloadSample}>
+          <i className="fa fa-download mr-2" />
+          Download Sample Format
+        </button>
+        <button className="btn-secondary" onClick={handleExport}>
+          <i className="fa fa-file-export mr-2" />
+          Export Pincodes
+        </button>
+      </div>
 
       {showCreate && (
         <div className="kanchira-card max-w-sm mb-6">
@@ -3972,7 +4108,132 @@ export function Pincode() {
         </div>
       )}
 
-      {loading ? (
+      {/* ── Bulk Upload panel ──────────────────────────────────────── */}
+      {showUpload && (
+        <div className="kanchira-card max-w-xl mb-6">
+          <h3 className="font-semibold mb-2" style={{ color: "#640101" }}>
+            Bulk Upload Pincodes
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Upload a .xlsx or .xls file with a "Pincode" column (an optional
+            "Available" column accepts Yes/No). Download the sample format
+            above to see the expected structure.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileChange}
+              className="kanchira-input"
+            />
+            <button
+              className="btn-primary whitespace-nowrap"
+              onClick={handleBulkUpload}
+              disabled={uploading || !uploadFile}
+            >
+              {uploading ? "Uploading..." : "Upload"}
+            </button>
+          </div>
+
+          {uploadSummary?.summary && (
+            <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="kanchira-card !p-3 text-center">
+                <div className="text-xl font-bold" style={{ color: "#640101" }}>
+                  {uploadSummary.summary.total}
+                </div>
+                <div className="text-xs text-gray-500">Total Records</div>
+              </div>
+              <div className="kanchira-card !p-3 text-center">
+                <div className="text-xl font-bold text-green-600">
+                  {uploadSummary.summary.success}
+                </div>
+                <div className="text-xs text-gray-500">Imported</div>
+              </div>
+              <div className="kanchira-card !p-3 text-center">
+                <div className="text-xl font-bold text-red-600">
+                  {uploadSummary.summary.failed}
+                </div>
+                <div className="text-xs text-gray-500">Failed</div>
+              </div>
+              <div className="kanchira-card !p-3 text-center">
+                <div className="text-xl font-bold text-yellow-600">
+                  {uploadSummary.summary.duplicate}
+                </div>
+                <div className="text-xs text-gray-500">Duplicates</div>
+              </div>
+            </div>
+          )}
+
+          {uploadSummary?.failedRecords?.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-semibold text-red-600 mb-2">
+                Failed Rows
+              </h4>
+              <div className="max-h-40 overflow-y-auto text-xs border rounded">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="text-left p-2">Row</th>
+                      <th className="text-left p-2">Value</th>
+                      <th className="text-left p-2">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uploadSummary.failedRecords.map((f, i) => (
+                      <tr key={i} className="border-t">
+                        <td className="p-2">{f.row}</td>
+                        <td className="p-2">{String(f.value)}</td>
+                        <td className="p-2">{f.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {uploadSummary?.duplicateRecords?.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-semibold text-yellow-600 mb-2">
+                Duplicate Rows
+              </h4>
+              <div className="max-h-40 overflow-y-auto text-xs border rounded">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="text-left p-2">Row</th>
+                      <th className="text-left p-2">Value</th>
+                      <th className="text-left p-2">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {uploadSummary.duplicateRecords.map((f, i) => (
+                      <tr key={i} className="border-t">
+                        <td className="p-2">{f.row}</td>
+                        <td className="p-2">{String(f.value)}</td>
+                        <td className="p-2">{f.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Search ──────────────────────────────────────────────── */}
+      <div className="mb-4 max-w-sm">
+        <input
+          className="kanchira-input"
+          placeholder="Search pincodes..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {loading || searching ? (
         <div className="flex justify-center py-12">
           <div
             className="spinner"

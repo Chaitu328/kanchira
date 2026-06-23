@@ -213,6 +213,10 @@ export default function Navbar() {
     .filter((cat) => 
       ['men', 'women', 'girls', 'boys'].includes(cat.name.toLowerCase())
     )
+    .sort((a, b) => {
+      const order = ['men', 'women', 'girls', 'boys'];
+      return order.indexOf(a.name.toLowerCase()) - order.indexOf(b.name.toLowerCase());
+    })
     .map((cat) => (
       <li key={cat._id} onMouseEnter={() => openMegaMenu(cat._id)} onMouseLeave={closeMegaMenu}>
         <span
@@ -415,6 +419,10 @@ export default function Navbar() {
     .filter((cat) => 
       ['men', 'women', 'girls', 'boys'].includes(cat.name.toLowerCase())
     )
+    .sort((a, b) => {
+      const order = ['men', 'women', 'girls', 'boys'];
+      return order.indexOf(a.name.toLowerCase()) - order.indexOf(b.name.toLowerCase());
+    })
     .map((cat) => (
       <li key={cat._id}>
         <button

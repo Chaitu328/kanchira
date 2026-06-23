@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>Reset Spin Wheel</title></head>
+<body style="font-family:sans-serif;text-align:center;padding:40px;background:#fdf0f0;">
+  <h2 style="color:#8B0000;">Reset Spin Wheel Timer</h2>
+  <p>Click below to clear the spin wheel cooldown so it appears on next visit.</p>
+  <button onclick="reset()" style="background:#8B0000;color:#FFE047;border:none;padding:12px 28px;border-radius:8px;font-size:16px;cursor:pointer;">
+    Clear Spin Timer
+  </button>
+  <p id="msg" style="margin-top:20px;color:green;font-weight:bold;"></p>
+  <script>
+    function reset() {
+      localStorage.removeItem('discountSpinTime');
+      document.getElementById('msg').textContent = 'Done! Reload the home page and the spin wheel will appear.';
+    }
+  </script>
+</body>
+</html>
