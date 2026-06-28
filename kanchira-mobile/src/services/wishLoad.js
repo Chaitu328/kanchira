@@ -19,29 +19,19 @@ const LoadWish = () => {
   useEffect(() => {
     const fetchCart = async () => {
       try {
-              if (userId) {
-
-        const data = await getWishlist({ userId });
-          console.log(data, "cartItems");
-dispatch(setWish(data.cart?.items || [])); // ✅ only send actual items array
-              }
-              else {
-        // ✅ Get local cart from AsyncStorage
         const localCartStr = await AsyncStorage.getItem('localWish');
         const localCart = localCartStr ? JSON.parse(localCartStr) : [];
         if (Array.isArray(localCart.items)) {
-          const totalCount = (localCart.items).reduce((sum, item) => sum + item.quantity, 0);
-          console.log(totalCount, "wishLoad");
           dispatch(setWish(localCart.items || []));
+        } else {
+          dispatch(setWish([]));
         }
-              
-      }
-    }catch (error) {
-        console.log("Failed to load cart:", error);
+      } catch (error) {
+        console.log("Failed to load wishlist:", error);
       }
     };
     fetchCart();
-  }, [userId]);
+  }, []);
 
   return null;
 };

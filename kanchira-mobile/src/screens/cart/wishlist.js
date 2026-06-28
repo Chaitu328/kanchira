@@ -61,32 +61,21 @@ const WishlistScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        if (userId) {
-          const data = await getWishlist({ userId });
-          console.log(data, 'cart', userId);
-          if (data?.cart) {
-            setCarts(data.cart || []);
-            dispatch(setWish(data.cart?.items || []));
-
-          }
+        const localCartStr = await AsyncStorage.getItem('localWish');
+        const localCart = localCartStr ? JSON.parse(localCartStr) : [];
+        if (Array.isArray(localCart.items)) {
+          setCarts(localCart);
+          dispatch(setWish(localCart.items));
         } else {
-          const localCartStr = await AsyncStorage.getItem('localWish');
-          const localCart = localCartStr ? JSON.parse(localCartStr) : [];
-          if (Array.isArray(localCart.items)) {
-            const totalCount = (localCart.items).reduce((sum, item) => sum + item.quantity, 0);
-            setCarts(localCart)
-            dispatch(setWish(localCart.items));
-          } else {
-            console.log("Local cart is not an array", localCart);
-            dispatch(setWish([]));
-          }
+          setCarts({ items: [] });
+          dispatch(setWish([]));
         }
       } catch (err) {
-        console.error('Error fetching cart:', err);
+        console.error('Error fetching wishlist:', err);
       }
     };
     fetchCart();
-  }, [userId]);
+  }, []);
 
   const cartCount = useSelector(state => (state.cart.items));
 
@@ -167,44 +156,33 @@ const WishlistScreen = ({ navigation }) => {
     try {
       setLoading(true); // ✅ Start loading indicator
 
-      if (userId) {
-        // 🔄 Logged-in user → call API
-        const payload = {
-          userId,
-          productId: item.productId,
-          variantId: item.variant?.variantId || "",
-        };
-        const response = await deleteWishlist(payload);
-        dispatch(setWish(response.cart?.items || []));
-      } else {
-        // 🗃️ Guest user → update AsyncStorage
-        const localCartStr = await AsyncStorage.getItem("localWish");
-        let localCart = localCartStr ? JSON.parse(localCartStr) : [];
+      // 🗃️ Update AsyncStorage
+      const localCartStr = await AsyncStorage.getItem("localWish");
+      let localCart = localCartStr ? JSON.parse(localCartStr) : [];
 
-        console.log(localCart, "Before Removal");
+      console.log(localCart, "Before Removal");
 
-        // ✅ Filter item from cart
-        const updatedCart = (localCart.items).filter(
-          (cartItem) =>
-            !(
-              cartItem.productId === item.productId &&
-              cartItem.variant?.variantId === item.variant?.variantId
-            )
-        );
+      // ✅ Filter item from wishlist
+      const updatedCart = (localCart.items || []).filter(
+        (cartItem) =>
+          !(
+            (cartItem.productId?._id || cartItem.productId) === (item.productId?._id || item.productId) &&
+            cartItem.variant?.variantId === item.variant?.variantId
+          )
+      );
 
-        console.log(updatedCart, "After Removal");
+      console.log(updatedCart, "After Removal");
 
-        // ✅ Save updated cart array (not object)
-        await AsyncStorage.setItem("localWish", JSON.stringify({ items: updatedCart }));
+      // ✅ Save updated cart array (not object)
+      await AsyncStorage.setItem("localWish", JSON.stringify({ items: updatedCart }));
 
-        // ✅ Refetch from AsyncStorage to stay in sync
-        const refreshedCartStr = await AsyncStorage.getItem("localWish");
-        const refreshedCart = refreshedCartStr ? JSON.parse(refreshedCartStr) : [];
+      // ✅ Refetch from AsyncStorage to stay in sync
+      const refreshedCartStr = await AsyncStorage.getItem("localWish");
+      const refreshedCart = refreshedCartStr ? JSON.parse(refreshedCartStr) : { items: [] };
 
-        // ✅ Update local state + Redux
-        setCarts(refreshedCart);
-        dispatch(setCart(updatedCart));
-      }
+      // ✅ Update local state + Redux
+      setCarts(refreshedCart);
+      dispatch(setWish(refreshedCart.items || []));
     } catch (error) {
       console.log("Failed to remove item:", error);
     } finally {

@@ -52,6 +52,15 @@ const ProductDetailsScreen = ({ navigation }) => {
 
     fetchUserId();
   }, []);
+
+  useEffect(() => {
+    if (wishCount && product) {
+      const exists = wishCount.some(
+        (item) => (item.productId?._id || item.productId) === product._id
+      );
+      setWishAdded(exists);
+    }
+  }, [wishCount, product]);
 const handleAddToBag = async (item) => {
   setAdded(true);
   try {
@@ -132,16 +141,12 @@ const handleAddToBag = async (item) => {
 };
 
   const handleAddToWish = async (item) => {
-
-    setWishAdded(true);
     try {
-      const userId = await AsyncStorage.getItem("userId");
-
       const currentVariant = item.variants && item.variants.length > selectedVariantIndex ? item.variants[selectedVariantIndex] : (item.variants?.[0] || null);
       const currentSize = currentVariant?.sizes?.[selectedSizeIndex] || currentVariant?.sizes?.[0];
       const cartItem = {
         productId: item._id,
-        name: item?.name || "",     // ✅ Add this
+        name: item?.name || "",
         image: item?.image || "",
         variant: {
           variantId: currentVariant?._id || "",
@@ -157,57 +162,34 @@ const handleAddToBag = async (item) => {
         quantity: 1,
       };
 
-    if (!userId) {
-  // 🟡 User not logged in → store in local storage
-  const existingWish = await AsyncStorage.getItem("localWish");
-
-  let updatedWish = [];
-
-  if (existingWish) {
-    const parsed = JSON.parse(existingWish);
-    updatedWish = parsed.items || [];
-  }
-
-  // ✅ Check if product already exists (by productId + variantId)
-  const existingIndex = updatedWish.findIndex(
-    (item) =>
-      item.productId === cartItem.productId &&
-      item.variant?.variantId === cartItem.variant?.variantId
-  );
-
-  if (existingIndex !== -1) {
-    // ✅ If exists → update quantity
-    updatedWish[existingIndex].quantity += cartItem.quantity || 1;
-  } else {
-    // ✅ If not exists → push new item
-    updatedWish.push(cartItem);
-  }
-
-  await AsyncStorage.setItem("localWish", JSON.stringify({ items: updatedWish }));
-  dispatch(setWish(updatedWish));
-  console.log("Stored locally (user not logged in):", updatedWish);
-
-  setWishAdded(false);
-  return;
-}
-
-
-      // 🟢 User logged in → Send to backend
-      const payload = {
-        userId,
-        items: [cartItem],
-      };
-
-      const response = await addWishlist(payload);
-      console.log("Item added to backend wish:", response);
-      if (response) {
-        dispatch(setWish(response.cart?.items || [])); // ✅ only send actual items array
+      const existingWish = await AsyncStorage.getItem("localWish");
+      let updatedWish = [];
+      if (existingWish) {
+        const parsed = JSON.parse(existingWish);
+        updatedWish = parsed.items || [];
       }
-      setWishAdded(false);
 
+      const existingIndex = updatedWish.findIndex(
+        (wItem) =>
+          (wItem.productId?._id || wItem.productId) === cartItem.productId &&
+          wItem.variant?.variantId === cartItem.variant?.variantId
+      );
+
+      if (existingIndex !== -1) {
+        // Toggle behavior: remove if exists
+        updatedWish.splice(existingIndex, 1);
+        setWishAdded(false);
+      } else {
+        // Add if not exists
+        updatedWish.push(cartItem);
+        setWishAdded(true);
+      }
+
+      await AsyncStorage.setItem("localWish", JSON.stringify({ items: updatedWish }));
+      dispatch(setWish(updatedWish));
+      console.log("Stored wishlist locally:", updatedWish);
     } catch (error) {
-      console.error("Error adding item to bag:", error);
-      setWishAdded(false);
+      console.error("Error toggling wishlist item:", error);
     }
   };
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);

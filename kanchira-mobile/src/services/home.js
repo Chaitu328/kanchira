@@ -193,7 +193,8 @@ export const updateAddress = async (payload) => {
 
 export const deleteAddress = async (payload) => {
   try {
-    const response = await api.post('/address/add', payload); // Keep original fallback
+    const id = payload?._id || payload?.id || payload;
+    const response = await api.delete(`/address/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting address:', error);
@@ -271,6 +272,16 @@ export const getBanners = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching banners:', error);
+    throw error;
+  }
+};
+
+export const recordSuperCouponUse = async (payload) => {
+  try {
+    const response = await api.post('/superadmin/coupons/use', payload);
+    return response.data;
+  } catch (error) {
+    console.error('Error recording super coupon usage:', error);
     throw error;
   }
 };

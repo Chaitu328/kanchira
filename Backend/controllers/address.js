@@ -72,9 +72,9 @@ exports.getAddress = async (req, res) => {
   
   exports.deleteAddress = async (req, res) => {
     try {
-      const { _id } = req.body;
+      const id = req.params.id || req.body._id || req.body.id;
   
-      const deletedAddress = await Address.findByIdAndDelete(_id);
+      const deletedAddress = await Address.findByIdAndDelete(id);
   
       if (!deletedAddress) {
         return res.status(200).json({ responseCode: 400, message: "Address not found" });
@@ -82,8 +82,8 @@ exports.getAddress = async (req, res) => {
   
       res.status(200).json({ responseCode: 200, message: "Address deleted successfully" });
     } catch (error) {
-      console.error('Error deleting category:', error);
-      res.status(500).json({ error: 'Failed to delete category' });
+      console.error('Error deleting address:', error);
+      res.status(500).json({ error: 'Failed to delete address' });
     }
   };
 

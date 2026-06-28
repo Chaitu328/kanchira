@@ -13,7 +13,7 @@ import {
   TextInput,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { getAddress, createPayment } from '../../services/home';
+import { getAddress, AddAddress, deleteAddress, createPayment, recordSuperCouponUse, getUser } from '../../services/home';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -49,6 +49,7 @@ const CheckoutScreen = () => {
   console.log(product)
 
   const [userId, setUserId] = useState(null);
+  const [userEmail, setUserEmail] = useState('');
 
   const [form, setForm] = useState({
     fullName: '',
@@ -61,23 +62,39 @@ const CheckoutScreen = () => {
     pincode: '',
   });
 
+  const fetchAddress = async () => {
+    try {
+      const id = await AsyncStorage.getItem('userId') || userId;
+      if (id) {
+        const response = await getAddress({ userId: id });
+        setAddresses(response.address || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch address:", e);
+    }
+  };
+
   useEffect(() => {
-    const fetchUserId = async () => {
-      const id = await AsyncStorage.getItem('userId');
-      setUserId(id);
+    const fetchUserIdAndEmail = async () => {
+      try {
+        const id = await AsyncStorage.getItem('userId');
+        setUserId(id);
+        if (id) {
+          const profile = await getUser(id);
+          const email = profile?.user?.email || '';
+          setUserEmail(email);
+        }
+      } catch (e) {
+        console.log("Failed to fetch user profile/email:", e);
+      }
     };
-    fetchUserId();
+    fetchUserIdAndEmail();
   }, []);
 
   useEffect(() => {
-    const fetchAddress = async () => {
-      const id = await AsyncStorage.getItem('userId');
-      const response = await getAddress({ userId: id })
-      console.log(response)
-      setAddresses(response.address)
-    };
     fetchAddress();
-  }, []);
+  }, [userId]);
+
   const handleChange = (name, value) => {
     setForm(prev => ({ ...prev, [name]: value }));
   };
@@ -91,9 +108,21 @@ const CheckoutScreen = () => {
       const response = await AddAddress(payload);
       Alert.alert('Success', 'Address saved!');
       // Close modal
-      setModalVisible(false)
+      setModalVisible(false);
+      await fetchAddress();
     } catch (error) {
       Alert.alert('Error', 'Failed to save address');
+    }
+  };
+
+  const recordCouponUsageIfAny = async () => {
+    if (couponCode && userEmail) {
+      try {
+        await recordSuperCouponUse({ couponCode, userEmail });
+        console.log("Super coupon usage recorded successfully");
+      } catch (err) {
+        console.log("Tried recording super coupon usage, failed (might be normal coupon):", err);
+      }
     }
   };
 
@@ -123,10 +152,12 @@ const CheckoutScreen = () => {
 
       const res = await createPayment(payload);
       if (res?.responseCode === 200 || res?.message?.toLowerCase().includes("successfully")) {
+        await recordCouponUsageIfAny();
         Alert.alert('Success', 'Order placed successfully!', [
           { text: 'OK', onPress: () => navigate.navigate('Home') }
         ]);
       } else if (res?.redirectUrlRes) {
+        await recordCouponUsageIfAny();
         const redirectUrl = res.redirectUrlRes;
         Linking.openURL(redirectUrl)
           .then(supported => {
@@ -160,7 +191,7 @@ const CheckoutScreen = () => {
   const shipping = 0;
   const total = Math.max(0, subtotal - discountAmt + shipping);
 
-  const handleDeleteAddress = id => {
+  const handleDeleteAddress = _id => {
     Alert.alert(
       'Delete Address',
       'Are you sure you want to delete this address?',
@@ -169,13 +200,16 @@ const CheckoutScreen = () => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            const updated = addresses.filter(addr => addr.id !== id);
-            setAddresses(updated);
-            if (selectedAddressId === id && updated.length > 0) {
-              setSelectedAddressId(updated[0].id);
-            } else if (updated.length === 0) {
-              setSelectedAddressId(null);
+          onPress: async () => {
+            try {
+              await deleteAddress(_id);
+              Alert.alert('Success', 'Address deleted');
+              await fetchAddress();
+              if (selectedAddressId === _id) {
+                setSelectedAddressId(null);
+              }
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete address');
             }
           },
         },

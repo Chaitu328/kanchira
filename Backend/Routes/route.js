@@ -59,7 +59,7 @@ const {
 } = require("../controllers/couponcodeController");
 
 const {
-  addAddress, updateAddress, getAddress, getAllAddress,
+  addAddress, updateAddress, getAddress, getAllAddress, deleteAddress
 } = require("../controllers/address");
 
 const {
@@ -189,6 +189,7 @@ router.delete("/coupon/delete/:id", verifyToken, isAdminOrSuperAdmin, deleteCoup
 router.post("/address/add", addAddress);
 router.put("/address/update/:id", updateAddress);
 router.get("/address/:userId", getAddress);
+router.delete("/address/:id", deleteAddress);
 router.get("/address/all/data", verifyToken, isAdminOrSuperAdmin, getAllAddress);
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
