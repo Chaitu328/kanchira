@@ -1,4 +1,29 @@
 {
-  "name": "NewProject",
-  "displayName": "NewProject"
+  "expo": {
+    "name": "Kanchira",
+    "slug": "kanchira",
+    "version": "1.0.0",
+    "platforms": ["android"],
+    "android": {
+      "package": "com.kanchira"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0",
+            "kotlinVersion": "1.8.22"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "80172af3-2bd6-46f8-bdd6-79637ca8f846"
+      }
+    }
+  }
 }
