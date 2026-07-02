@@ -1307,16 +1307,49 @@ export default function ProductDetails() {
     if (value.length === 6) checkPincode(value)
   }
 
-  const checkPincode = (pin) => {
+  const checkPincode = async (pin) => {
     const pinToCheck = pin || pincodeInput
     if (!pinToCheck || pinToCheck.length !== 6) return
-    const valid = zipcodes.some(z => {
+    
+    const match = zipcodes.find(z => {
       const pinValue = typeof z === 'string' ? z : z?.pincode?.toString() || z?.toString()
       return pinValue === pinToCheck
     })
-    setIsZipValid(valid)
-    setZipMsg('Delivery available')
+    
+    const isAvailable = match ? (match.available !== false) : false
+    setIsZipValid(isAvailable)
+
+    let areaName = match?.areaName || ''
+    
+    if (!areaName) {
+      try {
+        const response = await fetch(`https://api.postalpincode.in/pincode/${pinToCheck}`)
+        const data = await response.json()
+        if (data?.[0]?.Status === 'Success' && data[0].PostOffice?.length > 0) {
+          const po = data[0].PostOffice[0]
+          areaName = po.Name || po.District || ''
+        }
+      } catch (e) {
+        console.warn("Failed to fetch area name from Postal API:", e)
+      }
+    }
+
+    if (isAvailable) {
+      setZipMsg(areaName ? `${areaName} — Delivery available` : 'Delivery available')
+    } else {
+      setZipMsg(areaName ? `${areaName} — Delivery not available` : 'Delivery not available')
+    }
   }
+
+  const getEstimatedDeliveryDate = () => {
+    const deliveryDate = new Date();
+    deliveryDate.setDate(deliveryDate.getDate() + 6);
+    const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    return `Get it by ${months[deliveryDate.getMonth()]} ${deliveryDate.getDate()} — Fast Delivery available`;
+  };
 
   const avgRating = reviews.length
     ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1)
@@ -1560,10 +1593,16 @@ export default function ProductDetails() {
               </div>
             </div>
             {zipMsg && (
-              <div className="flex items-center gap-2 text-sm font-medium text-green-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+              <div className={`flex items-center gap-2 text-sm font-medium ${isZipValid ? 'text-green-600' : 'text-red-600'}`}>
+                {isZipValid ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
                 {zipMsg}
               </div>
             )}
@@ -1572,7 +1611,7 @@ export default function ProductDetails() {
                 <svg className="w-4 h-4 text-[#800000]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                Get it by May 8 — Fast Delivery available
+                {getEstimatedDeliveryDate()}
               </li>
               <li className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-[#800000]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

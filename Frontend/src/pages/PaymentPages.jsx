@@ -890,6 +890,7 @@ export function PaymentCallbackPage() {
           localStorage.removeItem("buynow_product");
           localStorage.removeItem("checkout_coupon_code");
           localStorage.removeItem("checkout_spin_discount");
+          localStorage.removeItem("won_spin_discount");
           localStorage.removeItem("merchantTransactionId");
           localStorage.removeItem("pending_order_amount");
           localStorage.removeItem("pending_order_mode");
@@ -1312,6 +1313,11 @@ export function CheckoutPage() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    // Backup active spin discount to won_spin_discount
+    const activeSpin = localStorage.getItem("checkout_spin_discount");
+    if (activeSpin) {
+      localStorage.setItem("won_spin_discount", activeSpin);
+    }
   }, []);
 
   // Auto-apply saved coupon on mount (only if no spin discount)
@@ -1450,6 +1456,7 @@ export function CheckoutPage() {
       localStorage.removeItem("buynow_product");
       localStorage.removeItem("checkout_coupon_code");
       localStorage.removeItem("checkout_spin_discount");
+      localStorage.removeItem("won_spin_discount");
 
       toast.success("Order placed successfully!");
       navigate("/payment_callback?status=success");

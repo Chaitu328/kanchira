@@ -10,6 +10,10 @@ const pinSchema = new mongoose.Schema({
         type : Boolean,
         require : true,
         default: true
+    },
+    areaName :{
+        type : String,
+        default: ""
     }
 }, { timestamps: true })
 

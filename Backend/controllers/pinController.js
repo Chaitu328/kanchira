@@ -7,7 +7,7 @@ const PINCODE_REGEX = /^[1-9][0-9]{5}$/;
 
 exports.createPinCode = async (req, res) => {
   try {
-    const { pincode, available } = req.body;
+    const { pincode, available, areaName } = req.body;
     if (!pincode || typeof available !== "boolean") {
       return res
         .status(400)
@@ -17,7 +17,7 @@ exports.createPinCode = async (req, res) => {
     if (existingPinCode) {
       return res.status(409).json({ message: "Pincode already exists" });
     }
-    const newPinCode = new PINcode({ pincode, available });
+    const newPinCode = new PINcode({ pincode, available, areaName: areaName || "" });
     const savedPinCode = await newPinCode.save();
     res
       .status(201)
@@ -44,7 +44,7 @@ exports.getPincode = async (req, res) => {
 
 exports.updatePinCode = async (req, res) => {
   try {
-    const { pincode, available } = req.body;
+    const { pincode, available, areaName } = req.body;
     if (typeof available !== "boolean") {
       return res
         .status(400)
@@ -54,7 +54,7 @@ exports.updatePinCode = async (req, res) => {
     }
     const updatedPinCode = await PINcode.findOneAndUpdate(
       { pincode },
-      { available },
+      { available, areaName },
       { new: true },
     );
     if (!updatedPinCode) {
@@ -178,7 +178,10 @@ exports.bulkUploadPinCodes = async (req, res) => {
         available = !["no", "false", "0", "unavailable", "n"].includes(normalized);
       }
 
-      validEntries.push({ pincode: Number(trimmed), available });
+      const rawAreaName =
+        row["Area Name"] ?? row.areaName ?? row.AreaName ?? row.Area ?? row.area ?? "";
+
+      validEntries.push({ pincode: Number(trimmed), available, areaName: String(rawAreaName).trim() });
     });
 
     let inserted = [];
@@ -218,6 +221,7 @@ exports.exportPinCodes = async (req, res) => {
     const pincodes = await PINcode.find().sort({ pincode: 1 }).lean();
     const rows = pincodes.map((p) => ({
       Pincode: p.pincode,
+      "Area Name": p.areaName || "",
       Available: p.available ? "Yes" : "No",
     }));
 
@@ -243,9 +247,9 @@ exports.exportPinCodes = async (req, res) => {
 exports.downloadSamplePinCodeFile = async (req, res) => {
   try {
     const sampleRows = [
-      { Pincode: 500072, Available: "Yes" },
-      { Pincode: 500085, Available: "Yes" },
-      { Pincode: 500090, Available: "Yes" },
+      { Pincode: 500072, "Area Name": "Kukatpally", Available: "Yes" },
+      { Pincode: 500085, "Area Name": "KPHB Colony", Available: "Yes" },
+      { Pincode: 500090, "Area Name": "Nizampet", Available: "Yes" },
     ];
     const worksheet = XLSX.utils.json_to_sheet(sampleRows);
     const workbook = XLSX.utils.book_new();

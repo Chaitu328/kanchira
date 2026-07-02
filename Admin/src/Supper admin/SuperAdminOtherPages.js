@@ -1682,7 +1682,7 @@ export function Pincode() {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ pincode: "", available: true });
+  const [form, setForm] = useState({ pincode: "", areaName: "", available: true });
   const [saving, setSaving] = useState(false);
 
   // ── Bulk upload state ──────────────────────────────────────────
@@ -1748,7 +1748,7 @@ export function Pincode() {
       await createPincode(form);
       toast.success("Pincode added!");
       setShowCreate(false);
-      setForm({ pincode: "", available: true });
+      setForm({ pincode: "", areaName: "", available: true });
       load();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed.");
@@ -1847,6 +1847,12 @@ export function Pincode() {
       render: (r) => <span className="font-mono font-bold">{r.pincode}</span>,
     },
     {
+      key: "areaName",
+      label: "Area Name",
+      searchable: true,
+      render: (r) => <span>{r.areaName || "—"}</span>,
+    },
+    {
       key: "available",
       label: "Available",
       render: (r) => <Badge value={r.available} />,
@@ -1898,6 +1904,14 @@ export function Pincode() {
                 placeholder="600001"
                 value={form.pincode}
                 onChange={(e) => setForm({ ...form, pincode: e.target.value })}
+              />
+            </Field>
+            <Field label="Area Name">
+              <input
+                className="kanchira-input"
+                placeholder="Mylapore"
+                value={form.areaName || ""}
+                onChange={(e) => setForm({ ...form, areaName: e.target.value })}
               />
             </Field>
             <label className="flex items-center gap-2 cursor-pointer">

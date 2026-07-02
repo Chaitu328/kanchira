@@ -167,9 +167,14 @@ export default function DiscountSpin({ onClose, onWin }) {
 
   const handleContinue = () => {
     if (wonValue !== null) {
+      const discountObj = { value: wonValue, label: `${wonValue}% OFF`, type: "percentage" };
       localStorage.setItem(
         "checkout_spin_discount",
-        JSON.stringify({ value: wonValue, label: `${wonValue}% OFF`, type: "percentage" }),
+        JSON.stringify(discountObj),
+      );
+      localStorage.setItem(
+        "won_spin_discount",
+        JSON.stringify(discountObj),
       );
       localStorage.setItem("discountSpinTime", Date.now().toString());
       if (onWin) onWin(wonValue);

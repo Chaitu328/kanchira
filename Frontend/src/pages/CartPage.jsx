@@ -69,11 +69,18 @@ export default function CartPage() {
   const [couponDiscount,setCouponDiscount]= useState(0)
   const [couponType,    setCouponType]    = useState('')  // 'percentage' | 'flat'
 
-  // ── Spin discount (read-only, won on Home page) ───────────────────────────
-  const [spinDiscount]      = useState(() => readSpinDiscount())
-  const spinDiscountApplied = !!spinDiscount
+  // ── Spin discount state (won on Home page, can be reapplied) ──────────────
+  const [spinDiscount, setSpinDiscount] = useState(() => readSpinDiscount())
+  const [spinDiscountApplied, setSpinDiscountApplied] = useState(() => !!readSpinDiscount())
 
-  useEffect(() => { window.scrollTo(0, 0) }, [])
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    // Back up any active spin discount to won_spin_discount for existing sessions
+    const activeSpin = localStorage.getItem('checkout_spin_discount')
+    if (activeSpin) {
+      localStorage.setItem('won_spin_discount', activeSpin)
+    }
+  }, [])
 
   // ── Load cart ─────────────────────────────────────────────────────────────
   const loadCart = useCallback(() => {
@@ -238,8 +245,26 @@ export default function CartPage() {
 
   const removeSpinDiscount = () => {
     localStorage.removeItem(SPIN_DISCOUNT_KEY)
+    setSpinDiscount(null)
+    setSpinDiscountApplied(false)
     toast.success('Spin discount removed')
-    window.location.reload()
+  }
+
+  const applyWonSpinDiscount = () => {
+    if (couponApplied) {
+      toast.error('Remove your coupon discount first')
+      return
+    }
+    const won = localStorage.getItem('won_spin_discount')
+    if (won) {
+      localStorage.setItem(SPIN_DISCOUNT_KEY, won)
+      const parsed = JSON.parse(won)
+      setSpinDiscount(parsed)
+      setSpinDiscountApplied(true)
+      toast.success('Spin discount reapplied!')
+    } else {
+      toast.error('No spin discount found to apply')
+    }
   }
 
   // ── Place order ───────────────────────────────────────────────────────────
@@ -390,6 +415,29 @@ export default function CartPage() {
                     <button type="button" className="mt-2 text-xs text-red-500 hover:underline" onClick={removeSpinDiscount}>
                       Remove spin discount
                     </button>
+                  </div>
+                ) : localStorage.getItem('won_spin_discount') ? (
+                  <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🎡</span>
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-[#800000]">Spin Discount Available</div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          You have an unused {JSON.parse(localStorage.getItem('won_spin_discount')).label} spin discount!
+                        </div>
+                        {!couponApplied ? (
+                          <button
+                            type="button"
+                            className="mt-2 bg-[#800000] text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-[#600000]"
+                            onClick={applyWonSpinDiscount}
+                          >
+                            Apply Spin Discount
+                          </button>
+                        ) : (
+                          <div className="text-xs text-red-500 mt-1 font-medium">Remove coupon to apply spin discount</div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-3">

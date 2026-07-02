@@ -314,19 +314,35 @@ export default function Navbar() {
             )}
           </Link>
 
-          <button
-            type="button"
-            className="bg-[#c29c3e] px-[10px] py-2 border-0 rounded-[4px] flex flex-col justify-between h-[35px] w-[50px]"
-            aria-label="Open menu"
-            onClick={() => {
-              setMobileUserMenuOpen(false)
-              setMobileOpen(true)
-            }}
-          >
-            <span className="block h-[3px] w-full bg-white rounded-[2px]" />
-            <span className="block h-[3px] w-full bg-white rounded-[2px]" />
-            <span className="block h-[3px] w-full bg-white rounded-[2px]" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="relative text-[22px] p-2 flex items-center justify-center"
+              onClick={() => navigate('/cart')}
+              aria-label="Cart"
+            >
+              <i className="fa fa-shopping-cart text-[#333333]" aria-hidden="true" />
+              {cartCount > 0 && (
+                <span className="absolute top-0 right-0 bg-[#800000] text-white rounded-full text-[9px] w-5 h-5 flex items-center justify-center border border-white">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="bg-[#c29c3e] px-[10px] py-2 border-0 rounded-[4px] flex flex-col justify-between h-[35px] w-[50px]"
+              aria-label="Open menu"
+              onClick={() => {
+                setMobileUserMenuOpen(false)
+                setMobileOpen(true)
+              }}
+            >
+              <span className="block h-[3px] w-full bg-white rounded-[2px]" />
+              <span className="block h-[3px] w-full bg-white rounded-[2px]" />
+              <span className="block h-[3px] w-full bg-white rounded-[2px]" />
+            </button>
+          </div>
         </nav>
 
         {/* Mega Menu */}
