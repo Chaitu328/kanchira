@@ -118,7 +118,9 @@ const [searchQuery, setSearchQuery] = useState('');
               console.log(data.sub_SubCategories)
               if (data) {
                 setSubSubCategories(data.sub_SubCategories);
-                fetchProducts((data.sub_SubCategories)[0])
+                // Pass the _id string, not the whole object
+                const firstItem = (data.sub_SubCategories || [])[0];
+                if (firstItem?._id) fetchProducts(firstItem._id);
                 // setActiveCategory(data[0]);
               }
             } catch (err) {

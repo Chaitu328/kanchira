@@ -143,7 +143,10 @@ const Dashboard = () => {
 const wishCount = useSelector(state => (state?.wish?.items));
 console.log(wishCount,"count")
   const [activeCategory, setActiveCategory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [subCategoriesLoading, setSubCategoriesLoading] = useState(true);
+  const [subSubCategoriesLoading, setSubSubCategoriesLoading] = useState(true);
+  const loading = categoriesLoading || subCategoriesLoading || subSubCategoriesLoading;
   const categoriescategories = [
     {
       title: 'Jeans',
@@ -266,7 +269,7 @@ console.log(result)
 
 
   const fetchCategories = async () => {
-    setLoading(true);
+    setCategoriesLoading(true);
     try {
       const data = await AllCategories({ categoryId: '' });
       if (data?.length) {
@@ -280,7 +283,7 @@ console.log(result)
     } catch (err) {
       console.error('Error fetching categories:', err);
     } finally {
-      setLoading(false);
+      setCategoriesLoading(false);
     }
   };
   const fetchSub=(categoryId)=>{
@@ -288,7 +291,7 @@ console.log(result)
     fetchSubSubCategories(categoryId)
   }
   const fetchSubCategories = async (categoryId) => {
-    setLoading(true);
+    setSubCategoriesLoading(true);
     try {
       const data = await AllSubCategoriesParam({ categoryId: categoryId ? categoryId : "" });
       if (data) {
@@ -298,30 +301,35 @@ console.log(result)
     } catch (err) {
       console.error('Error fetching categories:', err);
     } finally {
-      setLoading(false);
+      setSubCategoriesLoading(false);
     }
   };
     const fetchSubSubCategories = async (categoryId) => {
-    setLoading(true);
+    setSubSubCategoriesLoading(true);
     try {
       const data = await AllCategoriesWithSubSubCategories({ categoryId: categoryId ? categoryId : "" });
-      if (data) {
-        setSubSubCategories(data);
-        // setActiveCategory(data[0]);
+      // Only update state if we got real items — don't wipe the fallback grid
+      if (data?.sub_SubCategories?.length > 0) {
+        setSubSubCategories(data.sub_SubCategories);
       }
     } catch (err) {
       console.error('Error fetching categories:', err);
     } finally {
-      setLoading(false);
+      setSubSubCategoriesLoading(false);
     }
   };
   const fetchBanners = async () => {
     try {
       const data = await getBanners();
       const apiBanners = data?.banners || data || [];
-      if (apiBanners.length > 0) {
-        setBanners(apiBanners);
+      // Filter out placeholder/test images (example.com or empty URLs)
+      const validBanners = apiBanners.filter(
+        (b) => b.image && !b.image.includes('example.com') && b.image.startsWith('http')
+      );
+      if (validBanners.length > 0) {
+        setBanners(validBanners);
       }
+      // If no valid banners, keep the fallback FALLBACK_BANNERS already in state
     } catch (err) {
       console.error('Error fetching banners:', err);
     }

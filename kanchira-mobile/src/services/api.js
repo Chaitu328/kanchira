@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'https://kanchira-backend-1.onrender.com/api';
+const BASE_URL = 'http://161.248.223.165:3005/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -25,6 +25,22 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// DEBUG: log every outgoing request and response
+api.interceptors.request.use((config) => {
+  console.log('[API REQUEST]', config.method?.toUpperCase(), config.baseURL + config.url);
+  return config;
+});
+api.interceptors.response.use(
+  (response) => {
+    console.log('[API RESPONSE]', response.status, response.config.url, JSON.stringify(response.data).slice(0, 200));
+    return response;
+  },
+  (error) => {
+    console.log('[API ERROR]', error.config?.url, error.message, error.response?.status);
+    return Promise.reject(error);
+  }
 );
 
 export default api;

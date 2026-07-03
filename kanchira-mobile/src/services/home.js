@@ -12,7 +12,8 @@ export const AllCategoriesWithSubCategories = async (payload) => {
 
 export const AllCategoriesWithSubSubCategories = async (payload) => {
   try {
-    const categoryId = payload?.categoryId || payload;
+    const categoryId = (payload && typeof payload === 'object') ? (payload.categoryId ?? '') : (payload ?? '');
+    if (!categoryId) return { sub_SubCategories: [] }; // Don't fetch if categoryId is empty
     const response = await api.get(`/sub-subcategory/by-category/${categoryId}`);
     return response.data;
   } catch (error) {
@@ -33,9 +34,14 @@ export const AllCategories = async (payload) => {
 
 export const AllSubCategoriesParam = async (payload) => {
   try {
-    const id = payload?.id || payload?.categoryId || payload;
-    const response = await api.get(`/category/${id}`);
-    return response.data;
+    const categoryId = (payload && typeof payload === 'object') ? (payload.id ?? payload.categoryId ?? '') : (payload ?? '');
+    if (!categoryId) return { subCategory: [] }; // Don't fetch if id is empty
+    // Fetch all subcategories and filter client-side by categoryId
+    const response = await api.get('/subcategory/all');
+    // API returns { SubCategories: [...] } — note capital S
+    const allSubs = response.data?.SubCategories || response.data?.subCategory || response.data || [];
+    const filtered = Array.isArray(allSubs) ? allSubs.filter(sub => sub.categoryId === categoryId) : [];
+    return { subCategory: filtered };
   } catch (error) {
     console.error('Error fetching category by ID:', error);
     throw error;
@@ -54,6 +60,13 @@ export const AllSubCategories = async (payload) => {
 
 export const AllSubSubCategories = async (payload) => {
   try {
+    // Support subCategoryId (filter by parent), subSubcategoryId or id (single doc lookup)
+    const subCategoryId = payload?.subCategoryId;
+    if (subCategoryId) {
+      // Filter by parent subcategory using query param
+      const response = await api.get(`/sub-subcategory/${subCategoryId}?subCategoryId=${subCategoryId}`);
+      return response.data;
+    }
     const id = payload?.id || payload?.subSubcategoryId || payload;
     const response = await api.get(`/sub-subcategory/${id}`);
     return response.data;
@@ -65,7 +78,10 @@ export const AllSubSubCategories = async (payload) => {
 
 export const SubSubCategoryByProducts = async (payload) => {
   try {
-    const id = payload?.subsubcategoryId || payload;
+    // Handle case where a full object is passed instead of just the ID
+    const id = (payload?.subsubcategoryId && typeof payload.subsubcategoryId === 'object')
+      ? (payload.subsubcategoryId?._id || payload.subsubcategoryId?.id)
+      : (payload?.subsubcategoryId || payload?._id || payload?.id || payload);
     const response = await api.get(`/products/sub-subcategory/${id}`);
     return response.data;
   } catch (error) {
