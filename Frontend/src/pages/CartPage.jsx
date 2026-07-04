@@ -16,6 +16,7 @@ import {
 } from '../services/api'
 
 import AddressModal from '../components/AddressModal'
+import DiscountSpin from '../components/DiscountSpin'
 import emptyCartImg from '../assets/images/short_anim.png'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -72,6 +73,17 @@ export default function CartPage() {
   // ── Spin discount state (won on Home page, can be reapplied) ──────────────
   const [spinDiscount, setSpinDiscount] = useState(() => readSpinDiscount())
   const [spinDiscountApplied, setSpinDiscountApplied] = useState(() => !!readSpinDiscount())
+  const [couponAlert, setCouponAlert] = useState({ type: '', message: '' })
+  const [spinAlert, setSpinAlert] = useState({ type: '', message: '' })
+  const [showDiscountSpin, setShowDiscountSpin] = useState(false);
+
+  const handleSpinWin = (value) => {
+    const discountObj = { value, label: `${value}% OFF`, type: "percentage" };
+    setSpinDiscount(discountObj);
+    setSpinDiscountApplied(true);
+    setShowDiscountSpin(false);
+    toast.success(`Spin discount (${value}% OFF) applied!`);
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -164,9 +176,19 @@ export default function CartPage() {
   // Step 1: POST /superadmin/coupons/validate  (public, no auth needed)
   // Step 2: GET  /getCouponByCode/:code        (regular admin coupon fallback)
   const handleApplyCoupon = async () => {
-    if (spinDiscountApplied) { toast.error('Remove your spin discount first'); return }
+    setCouponAlert({ type: '', message: '' })
+    setSpinAlert({ type: '', message: '' })
+    if (spinDiscountApplied) {
+      setCouponAlert({ type: 'error', message: 'Remove your spin discount first' })
+      toast.error('Remove your spin discount first')
+      return
+    }
     const code = couponInput.trim().toUpperCase()
-    if (!code) { toast.error('Please enter a coupon code'); return }
+    if (!code) {
+      setCouponAlert({ type: 'error', message: 'Please enter a coupon code' })
+      toast.error('Please enter a coupon code')
+      return
+    }
 
     setCouponLoading(true)
     try {
@@ -183,35 +205,42 @@ export default function CartPage() {
         setCouponCode(d?.code || code)
         try { localStorage.setItem(COUPON_CODE_KEY, code) } catch {}
         const label = discountType === 'percentage' ? `${discountValue}% off` : `₹${discountValue} off`
-        toast.success(`Coupon applied! ${label}`)
+        const msg = `Coupon applied! ${label}`
+        setCouponAlert({ type: 'success', message: msg })
+        toast.success(msg)
         return
       } catch (superErr) {
         // SuperAdmin coupon not found → fall through to admin coupon
         const status = superErr?.response?.status
-        // If it's a clear "not found" error, try admin coupon
-        // If it's a different error (expired, limit reached), show that message directly
         if (status !== 404 && status !== 400) throw superErr
         const superMsg = superErr?.response?.data?.message || ''
         if (superMsg && !superMsg.toLowerCase().includes('not found') && !superMsg.toLowerCase().includes('inactive')) {
-          // Specific error like "expired" or "limit reached" — show it and stop
+          setCouponAlert({ type: 'error', message: superMsg })
           toast.error(superMsg)
           return
         }
-        // Otherwise fall through to admin coupon check
       }
 
       // ── Fallback: Try regular Admin coupon ────────────────────────────────
       const res = await getCouponByCode(code)
       const c   = res.data?.coupon || res.data?.data || res.data
 
-      if (!c) { toast.error('Coupon not found'); return }
+      if (!c) {
+        setCouponAlert({ type: 'error', message: 'Coupon not found' })
+        toast.error('Coupon not found')
+        return
+      }
 
       // Check expiry
       const exp = c.expiryDate || c.expiry || c.expiredAt
       if (exp) {
         const expDate = new Date(exp)
         expDate.setHours(23, 59, 59, 999)
-        if (expDate < new Date()) { toast.error('This coupon has expired'); return }
+        if (expDate < new Date()) {
+          setCouponAlert({ type: 'error', message: 'This coupon has expired' })
+          toast.error('This coupon has expired')
+          return
+        }
       }
 
       const discountType  = c.type  || c.discountType  || 'flat'
@@ -222,10 +251,13 @@ export default function CartPage() {
       setCouponCode(code)
       try { localStorage.setItem(COUPON_CODE_KEY, code) } catch {}
       const label = discountType === 'percentage' ? `${discountValue}% off` : `₹${discountValue} off`
-      toast.success(`Coupon applied! ${label}`)
+      const msg = `Coupon applied! ${label}`
+      setCouponAlert({ type: 'success', message: msg })
+      toast.success(msg)
 
     } catch (err) {
       const msg = err?.response?.data?.message || 'Coupon not found or invalid'
+      setCouponAlert({ type: 'error', message: msg })
       toast.error(msg)
     } finally {
       setCouponLoading(false)
@@ -234,24 +266,33 @@ export default function CartPage() {
 
   // ── Remove coupon ─────────────────────────────────────────────────────────
   const removeCoupon = () => {
+    setCouponAlert({ type: '', message: '' })
+    setSpinAlert({ type: '', message: '' })
     setCouponApplied(false)
     setCouponDiscount(0)
     setCouponType('')
     setCouponCode('')
     setCouponInput('')
     try { localStorage.removeItem(COUPON_CODE_KEY) } catch {}
+    setCouponAlert({ type: 'success', message: 'Coupon removed' })
     toast.success('Coupon removed')
   }
 
   const removeSpinDiscount = () => {
+    setCouponAlert({ type: '', message: '' })
+    setSpinAlert({ type: '', message: '' })
     localStorage.removeItem(SPIN_DISCOUNT_KEY)
     setSpinDiscount(null)
     setSpinDiscountApplied(false)
+    setSpinAlert({ type: 'success', message: 'Spin discount removed' })
     toast.success('Spin discount removed')
   }
 
   const applyWonSpinDiscount = () => {
+    setCouponAlert({ type: '', message: '' })
+    setSpinAlert({ type: '', message: '' })
     if (couponApplied) {
+      setSpinAlert({ type: 'error', message: 'Remove your coupon discount first' })
       toast.error('Remove your coupon discount first')
       return
     }
@@ -261,8 +302,10 @@ export default function CartPage() {
       const parsed = JSON.parse(won)
       setSpinDiscount(parsed)
       setSpinDiscountApplied(true)
+      setSpinAlert({ type: 'success', message: 'Spin discount reapplied!' })
       toast.success('Spin discount reapplied!')
     } else {
+      setSpinAlert({ type: 'error', message: 'No spin discount found to apply' })
       toast.error('No spin discount found to apply')
     }
   }
@@ -415,6 +458,11 @@ export default function CartPage() {
                     <button type="button" className="mt-2 text-xs text-red-500 hover:underline" onClick={removeSpinDiscount}>
                       Remove spin discount
                     </button>
+                    {spinAlert.message && (
+                      <p className={`text-xs mt-1 font-semibold ${spinAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                        {spinAlert.message}
+                      </p>
+                    )}
                   </div>
                 ) : localStorage.getItem('won_spin_discount') ? (
                   <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-3">
@@ -426,13 +474,20 @@ export default function CartPage() {
                           You have an unused {JSON.parse(localStorage.getItem('won_spin_discount')).label} spin discount!
                         </div>
                         {!couponApplied ? (
-                          <button
-                            type="button"
-                            className="mt-2 bg-[#800000] text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-[#600000]"
-                            onClick={applyWonSpinDiscount}
-                          >
-                            Apply Spin Discount
-                          </button>
+                          <div>
+                            <button
+                              type="button"
+                              className="mt-2 bg-[#800000] text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-[#600000]"
+                              onClick={applyWonSpinDiscount}
+                            >
+                              Apply Spin Discount
+                            </button>
+                            {spinAlert.message && (
+                              <p className={`text-xs mt-1 font-semibold ${spinAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                {spinAlert.message}
+                              </p>
+                            )}
+                          </div>
                         ) : (
                           <div className="text-xs text-red-500 mt-1 font-medium">Remove coupon to apply spin discount</div>
                         )}
@@ -440,15 +495,42 @@ export default function CartPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🎡</span>
-                      <div>
-                        <div className="text-sm font-bold text-[#800000]">No Spin Discount</div>
-                        <div className="text-xs text-gray-500 mt-0.5">Go to the Home page to spin the wheel!</div>
+                  (() => {
+                    const lastSpinTime = localStorage.getItem("discountSpinTime");
+                    const oneDay = 24 * 60 * 60 * 1000;
+                    const canSpin = !lastSpinTime || (Date.now() - Number(lastSpinTime) > oneDay);
+                    if (canSpin) {
+                      return (
+                        <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">🎡</span>
+                            <div className="flex-1">
+                              <div className="text-sm font-bold text-[#800000]">Spin Wheel Discount</div>
+                              <div className="text-xs text-gray-500 mt-0.5">Spin the wheel to win up to 10% discount!</div>
+                              <button
+                                type="button"
+                                className="mt-2 bg-[#800000] text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-[#600000]"
+                                onClick={() => setShowDiscountSpin(true)}
+                              >
+                                Spin Now
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">🎡</span>
+                          <div>
+                            <div className="text-sm font-bold text-[#800000]">No Spin Discount</div>
+                            <div className="text-xs text-gray-500 mt-0.5">You have already spun the wheel today. Please try again tomorrow!</div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })()
                 )}
 
                 {/* ── Single Coupon Box ─────────────────────────────────── */}
@@ -486,27 +568,40 @@ export default function CartPage() {
                       >
                         Remove Coupon
                       </button>
+                      {couponAlert.message && (
+                        <p className={`text-xs mt-1 font-semibold ${couponAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                          {couponAlert.message}
+                        </p>
+                      )}
                     </div>
 
                   ) : (
                     /* Input state */
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={couponInput}
-                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                        placeholder="Enter coupon code"
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:border-[#800000]"
-                        onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
-                        disabled={couponLoading}
-                      />
-                      <button
-                        onClick={handleApplyCoupon}
-                        disabled={couponLoading}
-                        className="bg-[#800000] text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-                      >
-                        {couponLoading ? '…' : 'Apply'}
-                      </button>
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={couponInput}
+                          onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                          placeholder="Enter coupon code"
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:border-[#800000]"
+                          onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                          disabled={couponLoading}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyCoupon}
+                          disabled={couponLoading}
+                          className="bg-[#800000] text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                        >
+                          {couponLoading ? '…' : 'Apply'}
+                        </button>
+                      </div>
+                      {couponAlert.message && (
+                        <p className={`text-xs mt-1.5 font-semibold ${couponAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                          {couponAlert.message}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -545,6 +640,12 @@ export default function CartPage() {
           currentAddress={address}
           onClose={() => setShowAddressModal(false)}
           onSave={(addr) => { setAddress(addr); setShowAddressModal(false) }}
+        />
+      )}
+      {showDiscountSpin && (
+        <DiscountSpin
+          onClose={() => setShowDiscountSpin(false)}
+          onWin={handleSpinWin}
         />
       )}
       {showCouponModal && (

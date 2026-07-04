@@ -184,7 +184,7 @@ export default function DiscountSpin({ onClose, onWin }) {
   };
 
   const handleClose = () => {
-    localStorage.setItem("discountSpinTime", Date.now().toString());
+    localStorage.setItem("lastSpinPopupDismissedTime", Date.now().toString());
     if (onClose) onClose();
   };
 

@@ -8,11 +8,15 @@ exports.addAddress = async (req, res) => {
       return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
+    // Enforce limit of 3 addresses max
+    const count = await Address.countDocuments({ userId });
+    if (count >= 3) {
+      return res.status(400).json({ success: false, message: "Maximum limit of 3 addresses reached. Please delete an address first." });
+    }
 
-      // Create new address entry
-     const  address = new Address({ userId, fullName ,phoneNumber , houseNumber, currentAddress, state, city, district, pincode });
-      await address.save();
-
+    // Create new address entry
+    const address = new Address({ userId, fullName ,phoneNumber , houseNumber, currentAddress, state, city, district, pincode });
+    await address.save();
 
     res.status(200).json({ success: true, message: "Address saved successfully", address });
   } catch (error) {
@@ -51,7 +55,7 @@ exports.updateAddress = async (req, res) => {
 
 exports.getAddress = async (req, res) => {
     try {
-      const { userId } = req.body;
+      const userId = req.params.userId || req.body.userId || req.query.userId;
   
       if (!userId) {
         return res.status(200).json({ success: false, message: "User ID is required" });

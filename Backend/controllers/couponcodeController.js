@@ -27,7 +27,29 @@ exports.getCoupons = async (req, res) => {
     const coupons = await Coupon.find()
       .populate("adminId", "name email phone")
       .sort({ createdAt: -1 });
-    res.json(coupons);
+
+    const orders = await Order.find({
+      couponCode: { $exists: true, $ne: "" },
+      status: { $nin: ["Cancelled", "Returned", "Refunded", "cancelled", "returned", "refunded"] }
+    });
+
+    const couponTotalMap = {};
+    orders.forEach(order => {
+      const code = (order.couponCode || "").trim().toUpperCase();
+      if (code) {
+        if (!couponTotalMap[code]) couponTotalMap[code] = 0;
+        couponTotalMap[code] += (Number(order.totalAmount) || 0);
+      }
+    });
+
+    const couponsWithTotal = coupons.map(c => {
+      const code = (c.code || "").trim().toUpperCase();
+      const totalAmountUsed = couponTotalMap[code] || 0;
+      const obj = c.toObject ? c.toObject() : c;
+      return { ...obj, totalAmountUsed };
+    });
+
+    res.json(couponsWithTotal);
   } catch (error) {
     res.status(500).json({ message: "Error fetching coupons", error });
   }

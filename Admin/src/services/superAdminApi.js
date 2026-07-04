@@ -10,7 +10,7 @@ import axios from "axios";
 //  Shared endpoints (users, products, orders, stats, etc.) use /api/ prefix.
 // ─────────────────────────────────────────────────────────────────
 const BASE =
-  process.env.REACT_APP_API_URL || "https://kanchira-backend-1.onrender.com/";
+  process.env.REACT_APP_API_URL || "http://localhost:3007/";
 
 // Regular admin — hits /api/* routes
 const api = axios.create({ baseURL: BASE });

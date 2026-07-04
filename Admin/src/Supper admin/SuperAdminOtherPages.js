@@ -2265,6 +2265,11 @@ export function CouponCodes() {
         r.expiryDate ? new Date(r.expiryDate).toLocaleDateString() : "—",
     },
     {
+      key: "totalAmountUsed",
+      label: "Total Amount Used",
+      render: (r) => `₹${Math.round(r.totalAmountUsed || 0).toLocaleString('en-IN')}`,
+    },
+    {
       key: "active",
       label: "Status",
       render: (r) => {
@@ -2302,58 +2307,6 @@ export function CouponCodes() {
         buttonLabel={showCreate ? "Cancel" : "Create Coupon"}
         onButtonClick={() => setShowCreate((s) => !s)}
       />
-
-      {/* ── Coupon Checker ───────────────────────────────────────── */}
-      <div className="kanchira-card mb-6">
-        <h3 className="font-semibold mb-3 text-sm text-gray-700">
-          <i className="fa fa-search mr-2" />
-          Check Coupon Code
-        </h3>
-        <form onSubmit={handleCheckCoupon} className="flex gap-2 items-center">
-          <input
-            className="kanchira-input flex-1 uppercase"
-            placeholder="Enter coupon code e.g. SUMMER20"
-            value={checkCode}
-            onChange={(e) => {
-              setCheckCode(e.target.value.toUpperCase());
-              setCheckResult(null);
-            }}
-          />
-          <button
-            type="submit"
-            disabled={checking || !checkCode.trim()}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex-shrink-0"
-            style={{
-              backgroundColor: "#640101",
-              opacity: !checkCode.trim() || checking ? 0.6 : 1,
-            }}
-          >
-            {checking ? "Checking..." : "Check"}
-          </button>
-        </form>
-        {checkResult && (
-          <div
-            className={`mt-3 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 ${
-              checkResult.status === "valid"
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : checkResult.status === "used"
-                  ? "bg-blue-50 text-blue-700 border border-blue-200"
-                  : "bg-red-50 text-red-700 border border-red-200"
-            }`}
-          >
-            <i
-              className={`fa ${
-                checkResult.status === "valid"
-                  ? "fa-check-circle"
-                  : checkResult.status === "used"
-                    ? "fa-user-times"
-                    : "fa-times-circle"
-              }`}
-            />
-            {checkResult.message}
-          </div>
-        )}
-      </div>
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (

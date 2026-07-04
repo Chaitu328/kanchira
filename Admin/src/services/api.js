@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_BASE =
-  process.env.REACT_APP_API_URL || "https://kanchira-backend-1.onrender.com/";
+  process.env.REACT_APP_API_URL || "http://localhost:3007/";
 
 // All regular-admin routes are mounted at /api on the backend:
 //   app.use("/api", authRoutes)  ← index.js

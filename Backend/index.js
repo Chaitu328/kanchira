@@ -1,4 +1,8 @@
+
 require("dotenv").config();
+const dns = require("dns");
+// Set Google DNS programmatically to ensure remote MongoDB Atlas SRV records resolve correctly
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const express = require("express");
 const http = require("http");
 const connectDB = require("./db");
@@ -46,3 +50,4 @@ const PORT = process.env.PORT || 3007;
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
+// Nodemon trigger comment

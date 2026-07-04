@@ -203,6 +203,7 @@ export default function SuperAdminUsers() {
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-600 uppercase">Discount</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-600 uppercase hidden md:table-cell">Min Order</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-600 uppercase hidden lg:table-cell">Usage</th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-600 uppercase">Total Amount Used</th>
                 <th className="text-center px-4 py-3 text-xs font-bold text-gray-600 uppercase">Status</th>
               </tr>
             </thead>
@@ -220,6 +221,7 @@ export default function SuperAdminUsers() {
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell text-gray-600">{c.minOrderAmount ? `₹${c.minOrderAmount}` : '—'}</td>
                     <td className="px-4 py-3 hidden lg:table-cell text-gray-600">{c.usedCount || 0} / {c.usageLimit ?? '∞'}</td>
+                    <td className="px-4 py-3 text-gray-700 font-medium">₹{Math.round(c.totalAmountUsed || 0).toLocaleString('en-IN')}</td>
                     <td className="px-4 py-3 text-center">
                       <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: badge.bg, color: badge.color }}>{badge.text}</span>
                     </td>
@@ -248,6 +250,7 @@ export default function SuperAdminUsers() {
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-600 uppercase">Code</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-600 uppercase">Type</th>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-600 uppercase">Value</th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-600 uppercase">Total Amount Used</th>
                 <th className="text-center px-4 py-3 text-xs font-bold text-gray-600 uppercase">Status</th>
               </tr>
             </thead>
@@ -266,6 +269,7 @@ export default function SuperAdminUsers() {
                     <td className="px-4 py-3 font-semibold" style={{ color: MAROON }}>
                       {c.type === 'percentage' ? `${c.value}%` : `₹${c.value}`}
                     </td>
+                    <td className="px-4 py-3 text-gray-700 font-medium">₹{Math.round(c.totalAmountUsed || 0).toLocaleString('en-IN')}</td>
                     <td className="px-4 py-3 text-center">
                       <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{
                         backgroundColor: expired ? '#f3f4f6' : c.active ? '#dcfce7' : '#fee2e2',

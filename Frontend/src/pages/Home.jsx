@@ -30,13 +30,16 @@ export default function Home() {
   const [loading, setLoading]                       = useState(true);
   const [showDiscountSpin, setShowDiscountSpin]      = useState(false);
 
-  // ── Show spin wheel on first visit (once per 6 hrs) ─────────────────────────
+  // ── Show spin wheel on first visit (once per day) ─────────────────────────
   useEffect(() => {
-    const lastShown    = localStorage.getItem("discountSpinTime");
-    const lastShownNum = Number(lastShown);
-    const sixHours     = 6 * 60 * 60 * 1000;
-    const shouldShow   =
-      !lastShown || isNaN(lastShownNum) || Date.now() - lastShownNum > sixHours;
+    const lastSpinTime = localStorage.getItem("discountSpinTime");
+    const lastDismissTime = localStorage.getItem("lastSpinPopupDismissedTime");
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+
+    const hasSpunToday = lastSpinTime && (Date.now() - Number(lastSpinTime) < twentyFourHours);
+    const hasDismissedRecently = lastDismissTime && (Date.now() - Number(lastDismissTime) < twentyFourHours);
+
+    const shouldShow = !hasSpunToday && !hasDismissedRecently;
     if (shouldShow) setShowDiscountSpin(true);
   }, []);
 

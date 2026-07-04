@@ -866,6 +866,7 @@ import {
 } from "../services/api";
 
 import AddressModal from "../components/AddressModal";
+import DiscountSpin from "../components/DiscountSpin";
 // import CouponModal from '../components/CouponModal'
 import emptyCartImg from "../assets/images/short_anim.png";
 
@@ -1042,10 +1043,12 @@ export function CheckoutPage() {
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponType, setCouponType] = useState("");
   const [showCouponModal, setShowCouponModal] = useState(false);
+  const [couponAlert, setCouponAlert] = useState({ type: '', message: '' });
+  const [spinAlert, setSpinAlert] = useState({ type: '', message: '' });
 
   // ── Spin discount state — READ ONLY from cart page, no spin wheel here ────
   // Reads from location.state (passed from CartPage) OR from localStorage
-  const [spinDiscount] = useState(() => {
+  const [spinDiscount, setSpinDiscount] = useState(() => {
     // Prefer location.state, fallback to localStorage
     if (location?.state?.spinDiscount) return location.state.spinDiscount;
     try {
@@ -1055,12 +1058,21 @@ export function CheckoutPage() {
       return null;
     }
   });
-  const [spinDiscountApplied] = useState(() => {
+  const [spinDiscountApplied, setSpinDiscountApplied] = useState(() => {
     return !!(
       location?.state?.spinDiscount ||
       localStorage.getItem("checkout_spin_discount")
     );
   });
+  const [showDiscountSpin, setShowDiscountSpin] = useState(false);
+
+  const handleSpinWin = (value) => {
+    const discountObj = { value, label: `${value}% OFF`, type: "percentage" };
+    setSpinDiscount(discountObj);
+    setSpinDiscountApplied(true);
+    setShowDiscountSpin(false);
+    toast.success(`Spin discount (${value}% OFF) applied!`);
+  };
 
   // ── Payment options state ─────────────────────────────────────────────────
   const [isPlacing, setIsPlacing] = useState(false);
@@ -1218,7 +1230,9 @@ export function CheckoutPage() {
 
   // ── Coupon helpers ────────────────────────────────────────────────────────
   const applyCouponCode = async (rawCode) => {
+    setCouponAlert({ type: '', message: '' });
     if (spinDiscountApplied) {
+      setCouponAlert({ type: "error", message: "Remove spin discount first to apply a coupon" });
       toast.error("Remove spin discount first to apply a coupon");
       return;
     }
@@ -1239,6 +1253,7 @@ export function CheckoutPage() {
 
         const exp = d?.expiryDate || d?.expiry;
         if (exp && new Date(exp) < new Date()) {
+          setCouponAlert({ type: "error", message: "This coupon has expired" });
           toast.error("This coupon has expired");
           return;
         }
@@ -1248,13 +1263,9 @@ export function CheckoutPage() {
         setCouponType(discountType);
         setCouponDiscount(discountValue);
         localStorage.setItem("checkout_coupon_code", code);
-        toast.success(
-          "Coupon applied! " +
-            (discountType === "percentage"
-              ? discountValue + "%"
-              : "\u20b9" + discountValue) +
-            " off",
-        );
+        const label = discountType === "percentage" ? discountValue + "%" : "\u20b9" + discountValue;
+        setCouponAlert({ type: "success", message: `Coupon applied! ${label} off` });
+        toast.success(`Coupon applied! ${label} off`);
         return;
       } catch (superErr) {
         const status = superErr?.response?.status;
@@ -1266,6 +1277,7 @@ export function CheckoutPage() {
           !msg.toLowerCase().includes("not found") &&
           !msg.toLowerCase().includes("inactive")
         ) {
+          setCouponAlert({ type: "error", message: msg });
           toast.error(msg);
           return;
         }
@@ -1276,6 +1288,7 @@ export function CheckoutPage() {
       const r = await getCouponByCode(code);
       const c = r.data?.coupon || r.data?.data || r.data;
       if (!c) {
+        setCouponAlert({ type: "error", message: "Coupon not found" });
         toast.error("Coupon not found");
         return;
       }
@@ -1285,6 +1298,7 @@ export function CheckoutPage() {
         const expDate = new Date(exp);
         expDate.setHours(23, 59, 59, 999);
         if (expDate < new Date()) {
+          setCouponAlert({ type: "error", message: "This coupon has expired" });
           toast.error("This coupon has expired");
           return;
         }
@@ -1298,24 +1312,30 @@ export function CheckoutPage() {
       setCouponType(discountType);
       setCouponDiscount(discountValue);
       localStorage.setItem("checkout_coupon_code", code);
-      toast.success(
-        "Coupon applied! " +
-          (discountType === "percentage"
-            ? discountValue + "%"
-            : "\u20b9" + discountValue) +
-          " off",
-      );
+      const label = discountType === "percentage" ? discountValue + "%" : "\u20b9" + discountValue;
+      setCouponAlert({ type: "success", message: `Coupon applied! ${label} off` });
+      toast.success(`Coupon applied! ${label} off`);
     } catch (err) {
       const msg = err?.response?.data?.message || "Coupon not found or invalid";
+      setCouponAlert({ type: "error", message: msg });
       toast.error(msg);
     }
   };
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    // Backup active spin discount to won_spin_discount
+    // Auto-restore/apply spin discount during checkout if won but not active
     const activeSpin = localStorage.getItem("checkout_spin_discount");
-    if (activeSpin) {
+    const wonSpin = localStorage.getItem("won_spin_discount");
+    if (wonSpin && !activeSpin) {
+      localStorage.setItem("checkout_spin_discount", wonSpin);
+      try {
+        const parsed = JSON.parse(wonSpin);
+        setSpinDiscount(parsed);
+        setSpinDiscountApplied(true);
+        toast.success(`Spin discount (${parsed.label}) auto-applied!`);
+      } catch (e) {}
+    } else if (activeSpin) {
       localStorage.setItem("won_spin_discount", activeSpin);
     }
   }, []);
@@ -1328,12 +1348,46 @@ export function CheckoutPage() {
   }, []);
 
   const removeCoupon = () => {
+    setCouponAlert({ type: '', message: '' });
     setCouponApplied(false);
     setCouponDiscount(0);
     setCouponType("");
     setCouponCode("");
     localStorage.removeItem("checkout_coupon_code");
+    setCouponAlert({ type: 'success', message: "Coupon removed" });
     toast.success("Coupon removed");
+  };
+
+  const removeSpinDiscount = () => {
+    setCouponAlert({ type: '', message: '' });
+    setSpinAlert({ type: '', message: '' });
+    localStorage.removeItem("checkout_spin_discount");
+    setSpinDiscount(null);
+    setSpinDiscountApplied(false);
+    setSpinAlert({ type: 'success', message: 'Spin discount removed' });
+    toast.success("Spin discount removed");
+  };
+
+  const applyWonSpinDiscount = () => {
+    setCouponAlert({ type: '', message: '' });
+    setSpinAlert({ type: '', message: '' });
+    if (couponApplied) {
+      setSpinAlert({ type: 'error', message: 'Remove your coupon discount first' });
+      toast.error("Remove your coupon discount first");
+      return;
+    }
+    const won = localStorage.getItem('won_spin_discount');
+    if (won) {
+      localStorage.setItem("checkout_spin_discount", won);
+      const parsed = JSON.parse(won);
+      setSpinDiscount(parsed);
+      setSpinDiscountApplied(true);
+      setSpinAlert({ type: 'success', message: 'Spin discount reapplied!' });
+      toast.success("Spin discount reapplied!");
+    } else {
+      setSpinAlert({ type: 'error', message: 'No spin discount found to apply' });
+      toast.error("No spin discount found to apply");
+    }
   };
 
   // ── Step navigation ───────────────────────────────────────────────────────
@@ -1874,6 +1928,94 @@ export function CheckoutPage() {
                 Only One Discount Can be Applied
               </div>
 
+              {/* Spin Box */}
+              {spinDiscountApplied ? (
+                <div className="mt-4 bg-green-50 border-2 border-green-400 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🎉</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-bold text-green-700">Spin Discount Active! ({spinDiscount?.label})</div>
+                      <div className="text-xs text-green-600 mt-0.5">You save ₹{Math.round(spinDiscountAmt)}</div>
+                    </div>
+                  </div>
+                  <button type="button" className="mt-2 text-xs text-red-500 hover:underline" onClick={removeSpinDiscount}>
+                    Remove spin discount
+                  </button>
+                  {spinAlert.message && (
+                    <p className={`text-xs mt-1 font-semibold ${spinAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                      {spinAlert.message}
+                    </p>
+                  )}
+                </div>
+              ) : localStorage.getItem('won_spin_discount') ? (
+                <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🎡</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-bold text-[#800000]">Spin Discount Available</div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        You have an unused {JSON.parse(localStorage.getItem('won_spin_discount'))?.label} spin discount!
+                      </div>
+                      {!couponApplied ? (
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            className="bg-[#800000] text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#600000]"
+                            onClick={applyWonSpinDiscount}
+                          >
+                            Apply Spin Discount
+                          </button>
+                          {spinAlert.message && (
+                            <p className={`text-xs mt-1.5 font-semibold ${spinAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                              {spinAlert.message}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-red-500 mt-2 font-medium">Remove coupon to apply spin discount</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                (() => {
+                  const lastSpinTime = localStorage.getItem("discountSpinTime");
+                  const oneDay = 24 * 60 * 60 * 1000;
+                  const canSpin = !lastSpinTime || (Date.now() - Number(lastSpinTime) > oneDay);
+                  if (canSpin) {
+                    return (
+                      <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">🎡</span>
+                          <div className="flex-1">
+                            <div className="text-sm font-bold text-[#800000]">Spin Wheel Discount</div>
+                            <div className="text-xs text-gray-500 mt-0.5">Spin the wheel to win up to 10% discount!</div>
+                            <button
+                              type="button"
+                              className="mt-2 bg-[#800000] text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#600000]"
+                              onClick={() => setShowDiscountSpin(true)}
+                            >
+                              Spin Now
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">🎡</span>
+                        <div>
+                          <div className="text-sm font-bold text-[#800000]">No Spin Discount</div>
+                          <div className="text-xs text-gray-500 mt-0.5">You have already spun the wheel today. Please try again tomorrow!</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+
               {/* Coupon Input */}
               <div
                 className="mt-4 rounded-lg border p-4"
@@ -1898,22 +2040,29 @@ export function CheckoutPage() {
                     Disabled — spin discount is active
                   </div>
                 ) : (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      placeholder="Enter coupon code"
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#800000]"
-                    />
+                  <div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        placeholder="Enter coupon code"
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#800000]"
+                      />
 
-                    <button
-                      type="button"
-                      onClick={() => applyCouponCode(couponCode)}
-                      className="bg-[#800000] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#600000]"
-                    >
-                      Apply
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => applyCouponCode(couponCode)}
+                        className="bg-[#800000] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#600000]"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                    {couponAlert.message && (
+                      <p className={`text-xs mt-1.5 font-semibold ${couponAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                        {couponAlert.message}
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -1930,13 +2079,20 @@ export function CheckoutPage() {
               </div>
 
               {couponApplied && !spinDiscountApplied && (
-                <button
-                  type="button"
-                  className="mt-2 text-xs text-red-500 hover:underline"
-                  onClick={removeCoupon}
-                >
-                  Remove Coupon
-                </button>
+                <div>
+                  <button
+                    type="button"
+                    className="mt-2 text-xs text-red-500 hover:underline"
+                    onClick={removeCoupon}
+                  >
+                    Remove Coupon
+                  </button>
+                  {couponAlert.message && (
+                    <p className={`text-xs mt-1 font-semibold ${couponAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                      {couponAlert.message}
+                    </p>
+                  )}
+                </div>
               )}
 
               {/* Grand total */}
@@ -1981,6 +2137,12 @@ export function CheckoutPage() {
           <AddressModal
             onClose={() => setShowAddressModal(false)}
             onSave={saveAddress}
+          />
+        )}
+        {showDiscountSpin && (
+          <DiscountSpin
+            onClose={() => setShowDiscountSpin(false)}
+            onWin={handleSpinWin}
           />
         )}
         {showCouponModal && (

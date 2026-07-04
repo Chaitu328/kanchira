@@ -3,7 +3,7 @@ import axios from 'axios'
 // ─── Base URL ──────────────────────────────────────────────────────────────────
 // Backend mounts all routes at /api (app.use("/api", authRoutes) in index.js)
 // BASE_URL already includes /api so all paths below are relative to it — no prefix needed.
-const BASE_URL = 'https://kanchira-backend-1.onrender.com/api'
+const BASE_URL = 'http://localhost:3007/api'
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -180,6 +180,7 @@ export const deleteSpecialCoupon  = (id)       => api.delete(`/superadmin/coupon
 export const addAddress    = (data)     => api.post('/address/add', data)
 export const updateAddress = (id, data) => api.put(`/address/update/${id}`, data)
 export const getAddress    = (userId)   => api.get(`/address/${userId}`)
+export const deleteAddress = (id)       => api.delete(`/address/${id}`)
 export const getAllAddress  = ()        => api.get('/address/all/data')
 
 // ─────────────────────────────────────────────────────────────────────────────

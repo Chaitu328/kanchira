@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 
-const BASE_URL = "https://kanchira-backend-fdlk.onrender.com";
+const BASE_URL = "http://localhost:3007";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -98,9 +98,9 @@ export default function Profile() {
     <div className="fixed inset-0 flex items-center justify-center bg-black/50">
       <div className="relative w-[350px] p-6 rounded-md bg-gradient-to-r from-[#c69a3b] via-[#d2ae4e] to-[#efdd7a]">
 
-        {/* Close / Logout */}
+        {/* Close Profile */}
         <button
-          onClick={handleLogout}
+          onClick={() => navigate("/")}
           className="absolute top-2 right-3 text-[#800000] text-2xl font-bold"
         >
           ×
@@ -110,17 +110,7 @@ export default function Profile() {
           Profile
         </h2>
 
-        {/* Messages */}
-        {success && (
-          <p className="text-green-700 text-sm mb-2 font-medium">
-            {success}
-          </p>
-        )}
-        {error && (
-          <p className="text-red-700 text-sm mb-2 font-medium">
-            {error}
-          </p>
-        )}
+
 
         {!isEdit ? (
           <>
@@ -143,6 +133,17 @@ export default function Profile() {
                 Edit
               </button>
             </div>
+            {/* Messages below button */}
+            {success && (
+              <p className="text-green-700 text-sm mt-2 text-right font-medium">
+                {success}
+              </p>
+            )}
+            {error && (
+              <p className="text-red-700 text-sm mt-2 text-right font-medium">
+                {error}
+              </p>
+            )}
           </>
         ) : (
           <>
@@ -198,6 +199,17 @@ export default function Profile() {
                 {loading ? "Saving..." : "Save"}
               </button>
             </div>
+            {/* Messages below buttons */}
+            {success && (
+              <p className="text-green-700 text-sm mt-2 text-right font-medium">
+                {success}
+              </p>
+            )}
+            {error && (
+              <p className="text-red-700 text-sm mt-2 text-right font-medium">
+                {error}
+              </p>
+            )}
           </>
         )}
       </div>

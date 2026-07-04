@@ -1133,6 +1133,9 @@ export default function ProductDetails() {
   const [similarProducts, setSimilarProducts] = useState([])
   const [showProductDetailsPopup, setShowProductDetailsPopup] = useState(false)
   const [showSizeChart, setShowSizeChart] = useState(false)
+  const [addToCartAlert, setAddToCartAlert] = useState({ type: '', message: '' })
+  const [buyNowAlert, setBuyNowAlert] = useState({ type: '', message: '' })
+  const [wishlistAlert, setWishlistAlert] = useState({ type: '', message: '' })
   const productDetailsRef = useRef(null)
 
   useEffect(() => {
@@ -1195,14 +1198,29 @@ export default function ProductDetails() {
     setSelectedSize(size)
   }
 
-  const toggleWishlist = (product) => {
-    const wasInWishlist = isInWishlist(product?._id)
-    addToWishlistLocal(product)
-    toast.success(wasInWishlist ? 'Removed from wishlist' : 'Added to wishlist!')
+  const toggleWishlist = (pro) => {
+    setAddToCartAlert({ type: '', message: '' })
+    setBuyNowAlert({ type: '', message: '' })
+    setWishlistAlert({ type: '', message: '' })
+    if (!user) {
+      setLoginModalOpen(true)
+      setWishlistAlert({ type: 'error', message: 'Please login to manage wishlist' })
+      toast.info('Please login to manage wishlist')
+      return
+    }
+    const wasInWishlist = isInWishlist(pro?._id)
+    addToWishlistLocal(pro)
+    const msg = wasInWishlist ? 'Removed from wishlist' : 'Added to wishlist!'
+    setWishlistAlert({ type: 'success', message: msg })
+    toast.success(msg)
   }
 
   const addToGuestCart = () => {
-    if (!selectedSize?.size) { toast.error('Please select a size'); return }
+    if (!selectedSize?.size) {
+      setAddToCartAlert({ type: 'error', message: 'Please select a size' })
+      toast.error('Please select a size')
+      return
+    }
     const guestCart = localStorage.getItem('guestCart')
     let cart = []
     if (guestCart) { try { cart = JSON.parse(guestCart) } catch { cart = [] } }
@@ -1234,15 +1252,32 @@ export default function ProductDetails() {
     }
     localStorage.setItem('guestCart', JSON.stringify(cart))
     setCartItems(cart)
+    setAddToCartAlert({ type: 'success', message: 'Added to cart!' })
     toast.success('Added to cart!')
   }
 
   const handleAddToCart = async () => {
-    if (!product?._id) { toast.error('Product not found'); return }
-    if (!selectedSize?.size) { toast.error('Please select a size'); return }
+    setAddToCartAlert({ type: '', message: '' })
+    setBuyNowAlert({ type: '', message: '' })
+    setWishlistAlert({ type: '', message: '' })
+    if (!product?._id) {
+      setAddToCartAlert({ type: 'error', message: 'Product not found' })
+      toast.error('Product not found')
+      return
+    }
+    if (!selectedSize?.size) {
+      setAddToCartAlert({ type: 'error', message: 'Please select a size' })
+      toast.error('Please select a size')
+      return
+    }
     if (!user) { addToGuestCart(); return }
     const userId = user?._id || user?.id
-    if (!userId) { toast.error('Please login again'); setLoginModalOpen(true); return }
+    if (!userId) {
+      setAddToCartAlert({ type: 'error', message: 'Please login again' })
+      toast.error('Please login again')
+      setLoginModalOpen(true)
+      return
+    }
     const basePrice = selectedSize?.price ?? selectedSize?.finalPrice ?? 0
     const discountPercentage = selectedSize?.discountPercentage ?? 0
     const image = selectedVariant?.images?.[0]?.url || selectedVariant?.images?.[0] || product.image
@@ -1263,14 +1298,17 @@ export default function ProductDetails() {
         }],
       })
       await loadCart()
+      setAddToCartAlert({ type: 'success', message: 'Added to cart!' })
       toast.success('Added to cart!')
     } catch (err) {
       if (err?.response?.status === 401) {
+        setAddToCartAlert({ type: 'error', message: 'Session expired. Please login again.' })
         toast.error('Session expired. Please login again.')
         setLoginModalOpen(true)
         return
       }
       const message = err?.response?.data?.message || err?.response?.data?.error || err?.message
+      setAddToCartAlert({ type: 'error', message: message || 'Failed to add to cart' })
       toast.error(message || 'Failed to add to cart')
     } finally {
       setAddingCart(false)
@@ -1278,8 +1316,20 @@ export default function ProductDetails() {
   }
 
   const handleBuyNow = async () => {
-    if (!user) { setLoginModalOpen(true); toast.info('Please login to continue with Buy Now'); return }
-    if (!selectedSize) { toast.error('Please select a size'); return }
+    setAddToCartAlert({ type: '', message: '' })
+    setBuyNowAlert({ type: '', message: '' })
+    setWishlistAlert({ type: '', message: '' })
+    if (!user) {
+      setLoginModalOpen(true)
+      setBuyNowAlert({ type: 'error', message: 'Please login to continue with Buy Now' })
+      toast.info('Please login to continue with Buy Now')
+      return
+    }
+    if (!selectedSize) {
+      setBuyNowAlert({ type: 'error', message: 'Please select a size' })
+      toast.error('Please select a size')
+      return
+    }
     try {
       const payload = {
         product: { _id: product?._id, name: product?.name, image: product?.image, metaTitle: product?.metaTitle },
@@ -1295,6 +1345,7 @@ export default function ProductDetails() {
       localStorage.setItem('buynow_product', JSON.stringify(payload))
       navigate('/buynow')
     } catch (e) {
+      setBuyNowAlert({ type: 'error', message: 'Buy now failed. Please try again.' })
       toast.error('Buy now failed. Please try again.')
     }
   }
@@ -1548,26 +1599,47 @@ export default function ProductDetails() {
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 mb-6">
-            <button type="button" onClick={handleAddToCart} disabled={addingCart}
-              className="w-full bg-[#800000] text-white py-3.5 rounded-lg text-base font-semibold hover:bg-[#600000] disabled:opacity-60 transition-colors">
-              {addingCart ? 'Adding...' : '🛒 Add to Cart'}
-            </button>
-            <button type="button" onClick={handleBuyNow} disabled={!selectedSize}
-              className="w-full py-3.5 rounded-lg text-white font-semibold text-base bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-300 hover:from-yellow-600 hover:to-yellow-400 shadow-md hover:shadow-lg transition-all duration-300">
-              ⚡ Buy Now
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleWishlist(product)}
-              className={`w-full py-3.5 rounded-lg text-base font-semibold border-2 transition-all duration-300 flex items-center justify-center gap-2
-                ${isInWishlist(product._id)
-                  ? 'border-red-500 text-red-500 hover:bg-red-50'
-                  : 'border-[#800000] text-[#800000] hover:bg-[#800000] hover:text-white'}`}>
-              <svg className="w-5 h-5" fill={isInWishlist(product._id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              {isInWishlist(product._id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
-            </button>
+            <div>
+              <button type="button" onClick={handleAddToCart} disabled={addingCart}
+                className="w-full bg-[#800000] text-white py-3.5 rounded-lg text-base font-semibold hover:bg-[#600000] disabled:opacity-60 transition-colors">
+                {addingCart ? 'Adding...' : '🛒 Add to Cart'}
+              </button>
+              {addToCartAlert.message && (
+                <p className={`text-sm font-semibold mt-1 text-center ${addToCartAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                  {addToCartAlert.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <button type="button" onClick={handleBuyNow} disabled={!selectedSize}
+                className="w-full py-3.5 rounded-lg text-white font-semibold text-base bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-300 hover:from-yellow-600 hover:to-yellow-400 shadow-md hover:shadow-lg transition-all duration-300">
+                ⚡ Buy Now
+              </button>
+              {buyNowAlert.message && (
+                <p className={`text-sm font-semibold mt-1 text-center ${buyNowAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                  {buyNowAlert.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => toggleWishlist(product)}
+                className={`w-full py-3.5 rounded-lg text-base font-semibold border-2 transition-all duration-300 flex items-center justify-center gap-2
+                  ${isInWishlist(product._id)
+                    ? 'border-red-500 text-red-500 hover:bg-red-50'
+                    : 'border-[#800000] text-[#800000] hover:bg-[#800000] hover:text-white'}`}>
+                <svg className="w-5 h-5" fill={isInWishlist(product._id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                {isInWishlist(product._id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+              </button>
+              {wishlistAlert.message && (
+                <p className={`text-sm font-semibold mt-1 text-center ${wishlistAlert.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                  {wishlistAlert.message}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Delivery Info */}
