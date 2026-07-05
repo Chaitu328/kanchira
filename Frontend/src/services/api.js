@@ -3,7 +3,7 @@ import axios from 'axios'
 // ─── Base URL ──────────────────────────────────────────────────────────────────
 // Backend mounts all routes at /api (app.use("/api", authRoutes) in index.js)
 // BASE_URL already includes /api so all paths below are relative to it — no prefix needed.
-const BASE_URL = 'http://localhost:3007/api'
+const BASE_URL = 'https://api.kanchira.com/api'
 
 const api = axios.create({
   baseURL: BASE_URL,

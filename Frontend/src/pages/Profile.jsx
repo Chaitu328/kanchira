@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 
-const BASE_URL = "http://localhost:3007";
+const BASE_URL = "https://api.kanchira.com";
 
 export default function Profile() {
   const navigate = useNavigate();

@@ -13,7 +13,7 @@ export default function Footer() {
       const all = r.data?.SubCategories || r.data || []
       const shuffled = [...all].sort(() => 0.5 - Math.random()).slice(0, 15)
       setSubCategories(shuffled)
-    }).catch(() => {})
+    }).catch(() => { })
   }, [])
 
   const goToSubSub = (id) => {
@@ -119,16 +119,16 @@ export default function Footer() {
 
       {/* CONTACT */}
       <div className="border-t pt-5 mb-6 text-center sm:text-left text-sm text-gray-600 leading-6">
-  <h5 className="font-semibold mb-2 text-gray-800">Registered Address</h5>
+        <h5 className="font-semibold mb-2 text-gray-800">Registered Address</h5>
 
-  {brandName} Clothing Store<br />
-  Plot No. 249 & 250, Sardar Patel Nagar<br />
-  Near JNTU, Kukatpally<br />
-  Hyderabad, Medchal Malkajgiri<br />
-  Telangana - 500085<br />
-  📞 {brandData?.phoneNumber || '+91 9963353171'}<br />
-  ✉️ {brandData?.email || 'kanchira.india@gmail.com'}
-</div>
+        {brandName} Clothing Store<br />
+        Plot No. 249 & 250, Sardar Patel Nagar<br />
+        Near JNTU, Kukatpally<br />
+        Hyderabad, Medchal Malkajgiri<br />
+        Telangana - 500085<br />
+        📞 {brandData?.phoneNumber || '+91 9963353171'}<br />
+        ✉️ {brandData?.email || 'support@kanchira.com'}
+      </div>
 
       {/* ABOUT */}
       <div className="border-t pt-5 mb-6 text-sm text-gray-600 text-center sm:text-left">

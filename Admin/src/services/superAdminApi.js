@@ -9,8 +9,7 @@ import axios from "axios";
 //  Super-admin-only routes (auth, special coupons) live at /superadmin.
 //  Shared endpoints (users, products, orders, stats, etc.) use /api/ prefix.
 // ─────────────────────────────────────────────────────────────────
-const BASE =
-  process.env.REACT_APP_API_URL || "http://localhost:3007/";
+const BASE = "https://api.kanchira.com/";
 
 // Regular admin — hits /api/* routes
 const api = axios.create({ baseURL: BASE });

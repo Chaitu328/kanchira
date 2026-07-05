@@ -19,7 +19,7 @@ export function TermsConditionsPage() {
       <h3>6. Limitation of Liability</h3>
       <p>Kanchira shall not be liable for any indirect or consequential damages arising from use of the website or purchase of products.</p>
       <h3>7. Contact</h3>
-      <p>For any queries: kanchira.india@gmail.com | +91 9963353171</p>
+      <p>For any queries: support@kanchira.com | +91 9963353171</p>
     </div>
   )
 }
@@ -37,7 +37,7 @@ export function ShippingPolicyPage() {
       <h3>Order Tracking</h3>
       <p>Once shipped, you will receive a tracking number via email and SMS.</p>
       <h3>Damaged or Lost Packages</h3>
-      <p>Contact us immediately at kanchira.india@gmail.com with your order details and photos.</p>
+      <p>Contact us immediately at support@kanchira.com with your order details and photos.</p>
     </div>
   )
 }
@@ -60,7 +60,7 @@ export function PrivacyPolicyPage() {
       <h3>Data Security</h3>
       <p>We implement SSL encryption and appropriate security measures to protect your personal information.</p>
       <h3>Your Rights</h3>
-      <p>Contact kanchira.india@gmail.com to access, correct, or delete your personal information.</p>
+      <p>Contact support@kanchira.com to access, correct, or delete your personal information.</p>
     </div>
   )
 }
@@ -98,7 +98,7 @@ export function ReturnPolicyPage() {
         <li>Proof of purchase (order ID) is required</li>
       </ul>
       <h3>How to Initiate a Return</h3>
-      <p>Contact us via email at kanchira.india@gmail.com or WhatsApp +91 9963353171 with your order details and photos.</p>
+      <p>Contact us via email at support@kanchira.com or WhatsApp +91 9963353171 with your order details and photos.</p>
       <h3>Defective Items</h3>
       <p>Report defects within 48 hours of delivery with clear photographs for a free replacement or full refund.</p>
     </div>
@@ -130,14 +130,14 @@ export function HelpCenterPage() {
       <div className="mt-8 bg-red-50 border border-red-100 rounded-xl p-6 text-center">
         <h3 className="font-bold text-[#800000] mb-2">Still need help?</h3>
         <p className="text-sm text-gray-600">📞 +91 9963353171</p>
-        <p className="text-sm text-gray-600">✉️ kanchira.india@gmail.com</p>
+        <p className="text-sm text-gray-600">✉️ support@kanchira.com</p>
       </div>
     </div>
   )
 }
 
 export function ContactUsPage() {
-  const [form, setForm] = useState({ name:'', email:'', phone:'', message:'' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' })
   const [sending, setSending] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -146,8 +146,8 @@ export function ContactUsPage() {
     try {
       await submitContactForm(form)
       alert('Message sent! We will get back to you soon.')
-      setForm({ name:'', email:'', phone:'', message:'' })
-    } catch { alert('Failed to send. Please email us directly at kanchira.india@gmail.com') }
+      setForm({ name: '', email: '', phone: '', message: '' })
+    } catch { alert('Failed to send. Please email us directly at support@kanchira.com') }
     setSending(false)
   }
 
@@ -156,19 +156,19 @@ export function ContactUsPage() {
       <h1>Contact Us</h1>
       <div className="grid md:grid-cols-2 gap-8 mt-6">
         <div>
-          <h3 style={{color:'#800000',fontWeight:600,marginBottom:12}}>Get in Touch</h3>
+          <h3 style={{ color: '#800000', fontWeight: 600, marginBottom: 12 }}>Get in Touch</h3>
           <div className="space-y-3 text-sm text-gray-600">
             <p>📞 +91 9963353171</p>
-            <p>✉️ kanchira.india@gmail.com</p>
+            <p>✉️ support@kanchira.com</p>
             <p>📍 No. 27, Venkateswara Nagar Main Road, Near Anna Silks, T. Nagar, Chennai – 600017, Tamil Nadu, India</p>
             <p>🕐 Mon–Sat: 9:00 AM – 7:00 PM</p>
           </div>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input className="form-input" placeholder="Your Name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required />
-          <input className="form-input" type="email" placeholder="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required />
-          <input className="form-input" placeholder="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} />
-          <textarea className="form-input resize-none" style={{height:112}} placeholder="Your message..." value={form.message} onChange={e=>setForm({...form,message:e.target.value})} required />
+          <input className="form-input" placeholder="Your Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
+          <input className="form-input" type="email" placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
+          <input className="form-input" placeholder="Phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+          <textarea className="form-input resize-none" style={{ height: 112 }} placeholder="Your message..." value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} required />
           <button className="btn-maroon" type="submit" disabled={sending}>{sending ? 'Sending...' : 'Send Message'}</button>
         </form>
       </div>
